@@ -2,7 +2,6 @@
 
 import argparse
 import os
-import random
 import markdown
 import re
 import subprocess
@@ -54,7 +53,7 @@ def sanitize_filename(title, max_length=50):
 def main():
     """
     This script reads a markdown file, converts it to plain text, and uses piper-tts to
-    read it aloud using a randomly selected voice with adjustable speech speed.
+    read it aloud using a user-selected voice.
     
     The output filename is generated from the document title and timestamp.
     """
@@ -62,8 +61,6 @@ def main():
     # --- Argument Parsing ---
     parser = argparse.ArgumentParser(description="Reads a markdown file aloud using piper-tts.")
     parser.add_argument("markdown_file", help="Path to the markdown file to read.")
-    parser.add_argument("--speed", type=float, default=1.3, 
-                        help="Speech speed (default: 1.3, higher = slower, range: 0.5-2.0)")
     args = parser.parse_args()
 
     # --- File Validation ---
@@ -98,8 +95,26 @@ def main():
         print(f"Error: No voices found in '{voices_dir}'")
         return
 
-    selected_voice_name = random.choice(available_voices)
-    print(f"Using voice: {selected_voice_name}")
+    # Display available voices and let user choose
+    print(f"Found {len(available_voices)} available voices:")
+    for i, voice in enumerate(available_voices, 1):
+        print(f"{i}. {voice}")
+    
+    while True:
+        try:
+            choice = input(f"\nSelect a voice (1-{len(available_voices)}): ").strip()
+            choice_num = int(choice)
+            if 1 <= choice_num <= len(available_voices):
+                selected_voice_name = available_voices[choice_num - 1]
+                print(f"Selected voice: {selected_voice_name}")
+                break
+            else:
+                print(f"Please enter a number between 1 and {len(available_voices)}")
+        except ValueError:
+            print("Please enter a valid number")
+        except KeyboardInterrupt:
+            print("\nOperation cancelled by user")
+            return
 
     # --- Speech Synthesis ---
     voice_model_path = None
@@ -132,11 +147,9 @@ def main():
         voice_model_path,
         "--output_file",
         output_path,
-        "--length-scale",
-        str(args.speed),
     ]
 
-    print(f"Synthesizing speech to '{output_path}' with speed {args.speed}...")
+    print(f"Synthesizing speech to '{output_path}'...")
     subprocess.run(command, input=text_content.encode("utf-8"))
 
     # Check if the file is empty
