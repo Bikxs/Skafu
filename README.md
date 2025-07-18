@@ -188,41 +188,34 @@ npm test
 ## Development Roadmap
 
 ### ✅ Phase 1: Foundation & Infrastructure (COMPLETED)
-- Event sourcing architecture with DynamoDB event store
-- Nested SAM templates for infrastructure as code
-- Shared Python libraries with AWS Powertools
-- Observability domain foundation with Lambda functions
-- Custom EventBridge buses for event-driven communication
-- Cognito authentication with Groups-based RBAC
-- Fine-grained IAM security and full X-Ray tracing
+- **Project Structure & Setup**: Domain-first folder structure with Python and React foundations
+- **AWS Infrastructure**: Nested SAM templates with shared resources (EventBridge, Cognito, API Gateway)
+- **Event Sourcing Implementation**: Complete skafu_shared Python library with event store patterns
+- **Observability Domain Foundation**: Lambda functions, Step Functions, and DynamoDB read models
+- **CI/CD Pipeline Setup**: *Pending* - GitHub Actions and SAM Pipeline configuration
 
-### 🔄 Phase 2: Backend Implementation (IN PROGRESS)
-- Complete observability domain API endpoints
-- Remaining Lambda functions (query metrics, alerts, security events)
-- Amplify Gen2 GraphQL setup for read model queries
-- Step Functions orchestration for read model updates
-- Stubbed domain endpoints for project and template management
+### 🔄 Phase 2: Backend Implementation (NEXT)
+- **Observability Domain APIs**: Complete metric collection, query, alert management, and health endpoints
+- **Authentication & Security**: Cognito integration, JWT validation, RBAC, and input validation
+- **Stubbed Domain APIs**: Mock endpoints for project management, templates, and AI integration
+- **Testing & Validation**: Unit tests, integration tests, and comprehensive error handling
 
-### 🔄 Phase 3: Frontend Implementation (NEXT)
-- React components with Cloudscape Design System
-- Redux state management and RTK Query integration
-- Observability dashboard with real-time metrics
-- Authentication flow with Cognito integration
-- Responsive design and accessibility compliance
+### 🔄 Phase 3: Frontend Implementation (PLANNED)
+- **Complete SPA Architecture**: React Router, Redux Toolkit, RTK Query, and Cloudscape Design System
+- **All Planned Pages**: Dashboard, projects, templates, observability hub, metrics, alerts, and user management
+- **Observability Features**: Real-time metrics dashboard, alert management, and security event visualization
+- **Authentication & Navigation**: Login/logout, protected routes, and role-based navigation
 
 ### 🔄 Phase 4: Integration & Testing (PLANNED)
-- End-to-end testing with comprehensive test coverage
-- Integration testing across all domains
-- Performance testing and optimization
-- Security testing and vulnerability scanning
-- CI/CD pipeline with GitHub Actions
+- **Complete Testing Strategy**: Unit tests (80%+ coverage), integration tests, and end-to-end testing
+- **Monitoring & Observability**: CloudWatch dashboards, X-Ray tracing, and structured logging
+- **Integration Testing**: Frontend-backend integration, authentication flow, and API validation
+- **Performance & Security**: Load testing, security scanning, and backup/recovery procedures
 
 ### 🔄 Phase 5: Production Deployment (PLANNED)
-- Multi-AZ production deployment
-- Performance monitoring and alerting
-- Documentation and user guides
-- Security hardening and compliance validation
-- Production readiness review
+- **Production Environment**: Multi-AZ deployment, WAF, VPC configuration, and security hardening
+- **Documentation & Handoff**: API documentation, user guides, operations guides, and architecture diagrams
+- **Final Validation**: Security audit, performance testing, monitoring validation, and user acceptance testing
 
 ## Success Metrics
 
@@ -250,20 +243,17 @@ This is currently a research project. Contribution guidelines will be establishe
 
 ### Current Implementation Status
 - ✅ **Phase 1**: Foundation & Infrastructure (COMPLETED)
-  - Complete event sourcing architecture with DynamoDB event store
-  - Nested SAM templates for infrastructure as code
-  - Shared Python libraries with AWS Powertools integration
-  - Observability domain with Lambda functions and Step Functions
-  - Custom EventBridge buses for event-driven communication
-  - Cognito authentication with Groups-based RBAC
-  - Fine-grained IAM security with per-function roles
-  - Full X-Ray tracing and CloudWatch monitoring
+  - **Project Structure & Setup**: Domain-first folder structure with Python and React foundations
+  - **AWS Infrastructure**: Nested SAM templates with shared resources (EventBridge, Cognito, API Gateway)
+  - **Event Sourcing Implementation**: Complete skafu_shared Python library with event store patterns
+  - **Observability Domain Foundation**: Lambda functions, Step Functions, and DynamoDB read models
+  - **CI/CD Pipeline Setup**: *Pending* - GitHub Actions and SAM Pipeline configuration
 
-- 🔄 **Phase 2**: Backend Implementation (IN PROGRESS)
-  - Complete observability domain API endpoints
-  - Remaining Lambda functions for metrics, alerts, and system health
-  - Amplify Gen2 GraphQL setup for read model queries
-  - Step Functions orchestration for read model updates
+- 🔄 **Phase 2**: Backend Implementation (NEXT)
+  - **Observability Domain APIs**: Complete metric collection, query, alert management, and health endpoints
+  - **Authentication & Security**: Cognito integration, JWT validation, RBAC, and input validation
+  - **Stubbed Domain APIs**: Mock endpoints for project management, templates, and AI integration
+  - **Testing & Validation**: Unit tests, integration tests, and comprehensive error handling
 
 ### Implementation Architecture
 
@@ -295,10 +285,10 @@ implementation/
 - **Frontend**: React 18 + TypeScript + Vite (foundation ready)
 
 ### Next Milestones
-- **Phase 2**: Complete observability domain backend (Week 2-3)
-- **Phase 3**: Frontend implementation with Cloudscape Design System (Week 3-4)
-- **Phase 4**: Integration testing and CI/CD pipeline (Week 4-5)
-- **Phase 5**: Production deployment and documentation (Week 5-6)
+- **Phase 2**: Backend Implementation - Complete observability domain APIs and authentication (Week 2-3)
+- **Phase 3**: Frontend Implementation - React SPA with Cloudscape Design System (Week 3-4)
+- **Phase 4**: Integration & Testing - End-to-end testing and monitoring setup (Week 4-5)
+- **Phase 5**: Production Deployment - Multi-AZ deployment and documentation (Week 5-6)
 
 ## Contact
 
