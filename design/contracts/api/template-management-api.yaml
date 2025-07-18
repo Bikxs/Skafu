@@ -1,0 +1,1350 @@
+openapi: 3.0.3
+info:
+  title: Skafu Template Management API
+  description: API for managing templates, validation, and rendering in the Skafu microservices scaffolding platform
+  version: 1.0.0
+  contact:
+    name: Skafu Platform Team
+    email: platform-team@skafu.dev
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.skafu.dev/v1
+    description: Production server
+  - url: https://api-staging.skafu.dev/v1
+    description: Staging server
+  - url: http://localhost:3000/v1
+    description: Local development server
+
+security:
+  - BearerAuth: []
+  - ApiKeyAuth: []
+
+paths:
+  /templates:
+    get:
+      summary: List templates
+      description: Retrieve a paginated list of available templates
+      operationId: listTemplates
+      tags:
+        - Templates
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+        - $ref: '#/components/parameters/SortBy'
+        - $ref: '#/components/parameters/SortOrder'
+        - name: type
+          in: query
+          description: Filter templates by type
+          schema:
+            $ref: '#/components/schemas/TemplateType'
+        - name: category
+          in: query
+          description: Filter templates by category
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: Filter templates by status
+          schema:
+            $ref: '#/components/schemas/TemplateStatus'
+        - name: search
+          in: query
+          description: Search templates by name or description
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of templates
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Template'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      summary: Create template
+      description: Upload and create a new template
+      operationId: createTemplate
+      tags:
+        - Templates
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                template:
+                  $ref: '#/components/schemas/CreateTemplateRequest'
+                files:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+              required:
+                - template
+                - files
+      responses:
+        '201':
+          description: Template created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Template'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /templates/{templateId}:
+    parameters:
+      - $ref: '#/components/parameters/TemplateId'
+    
+    get:
+      summary: Get template
+      description: Retrieve detailed information about a specific template
+      operationId: getTemplate
+      tags:
+        - Templates
+      responses:
+        '200':
+          description: Template details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/TemplateDetail'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      summary: Update template
+      description: Update an existing template
+      operationId: updateTemplate
+      tags:
+        - Templates
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTemplateRequest'
+      responses:
+        '200':
+          description: Template updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Template'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      summary: Delete template
+      description: Delete a template and all its associated files
+      operationId: deleteTemplate
+      tags:
+        - Templates
+      responses:
+        '204':
+          description: Template deleted successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /templates/{templateId}/validate:
+    parameters:
+      - $ref: '#/components/parameters/TemplateId'
+    
+    post:
+      summary: Validate template
+      description: Validate a template's structure and content
+      operationId: validateTemplate
+      tags:
+        - Templates
+      responses:
+        '200':
+          description: Template validation results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ValidationResult'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /templates/{templateId}/publish:
+    parameters:
+      - $ref: '#/components/parameters/TemplateId'
+    
+    post:
+      summary: Publish template
+      description: Publish a template to make it available for use
+      operationId: publishTemplate
+      tags:
+        - Templates
+      responses:
+        '200':
+          description: Template published successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Template'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /templates/{templateId}/render:
+    parameters:
+      - $ref: '#/components/parameters/TemplateId'
+    
+    post:
+      summary: Render template
+      description: Render a template with provided parameters
+      operationId: renderTemplate
+      tags:
+        - Templates
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RenderTemplateRequest'
+      responses:
+        '200':
+          description: Template rendered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/RenderedTemplate'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /templates/{templateId}/preview:
+    parameters:
+      - $ref: '#/components/parameters/TemplateId'
+    
+    post:
+      summary: Preview template
+      description: Preview a template rendering without creating actual files
+      operationId: previewTemplate
+      tags:
+        - Templates
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PreviewTemplateRequest'
+      responses:
+        '200':
+          description: Template preview generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/TemplatePreview'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /templates/{templateId}/files:
+    parameters:
+      - $ref: '#/components/parameters/TemplateId'
+    
+    get:
+      summary: List template files
+      description: List all files in a template
+      operationId: listTemplateFiles
+      tags:
+        - Templates
+      responses:
+        '200':
+          description: List of template files
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TemplateFile'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /templates/{templateId}/files/{filePath}:
+    parameters:
+      - $ref: '#/components/parameters/TemplateId'
+      - name: filePath
+        in: path
+        required: true
+        description: Path to the template file
+        schema:
+          type: string
+    
+    get:
+      summary: Get template file
+      description: Get the content of a specific template file
+      operationId: getTemplateFile
+      tags:
+        - Templates
+      responses:
+        '200':
+          description: Template file content
+          content:
+            text/plain:
+              schema:
+                type: string
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/TemplateFileContent'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /templates/{templateId}/parameters:
+    parameters:
+      - $ref: '#/components/parameters/TemplateId'
+    
+    get:
+      summary: Get template parameters
+      description: Get the parameter schema for a template
+      operationId: getTemplateParameters
+      tags:
+        - Templates
+      responses:
+        '200':
+          description: Template parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TemplateParameter'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /templates/{templateId}/parameters/validate:
+    parameters:
+      - $ref: '#/components/parameters/TemplateId'
+    
+    post:
+      summary: Validate template parameters
+      description: Validate provided parameters against template schema
+      operationId: validateTemplateParameters
+      tags:
+        - Templates
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                parameters:
+                  type: object
+                  additionalProperties: true
+              required:
+                - parameters
+      responses:
+        '200':
+          description: Parameter validation results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ParameterValidationResult'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /templates/{templateId}/analytics:
+    parameters:
+      - $ref: '#/components/parameters/TemplateId'
+    
+    get:
+      summary: Get template analytics
+      description: Get usage analytics for a template
+      operationId: getTemplateAnalytics
+      tags:
+        - Templates
+      parameters:
+        - name: period
+          in: query
+          description: Time period for analytics
+          schema:
+            type: string
+            enum: [7d, 30d, 90d, 1y]
+            default: 30d
+      responses:
+        '200':
+          description: Template analytics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/TemplateAnalytics'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /categories:
+    get:
+      summary: List template categories
+      description: Get all available template categories
+      operationId: listCategories
+      tags:
+        - Categories
+      responses:
+        '200':
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Category'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /health:
+    get:
+      summary: Health check
+      description: Check the health status of the Template Management API
+      operationId: healthCheck
+      tags:
+        - Health
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+        '503':
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  parameters:
+    TemplateId:
+      name: templateId
+      in: path
+      required: true
+      description: Unique identifier for the template
+      schema:
+        type: string
+    Limit:
+      name: limit
+      in: query
+      description: Maximum number of items to return
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    Offset:
+      name: offset
+      in: query
+      description: Number of items to skip
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    SortBy:
+      name: sortBy
+      in: query
+      description: Field to sort by
+      schema:
+        type: string
+        enum: [name, createdAt, updatedAt, usageCount]
+        default: createdAt
+    SortOrder:
+      name: sortOrder
+      in: query
+      description: Sort order
+      schema:
+        type: string
+        enum: [asc, desc]
+        default: desc
+
+  schemas:
+    Template:
+      type: object
+      required:
+        - id
+        - name
+        - type
+        - status
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the template
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Template name
+        description:
+          type: string
+          maxLength: 500
+          description: Template description
+        type:
+          $ref: '#/components/schemas/TemplateType'
+        category:
+          type: string
+          description: Template category
+        status:
+          $ref: '#/components/schemas/TemplateStatus'
+        author:
+          type: string
+          description: Template author
+        version:
+          type: string
+          description: Template version
+        supportedFrameworks:
+          type: array
+          items:
+            type: string
+          description: List of supported frameworks
+        supportedRuntimes:
+          type: array
+          items:
+            type: string
+          description: List of supported runtimes
+        tags:
+          type: array
+          items:
+            type: string
+          description: Template tags
+        usageCount:
+          type: integer
+          minimum: 0
+          description: Number of times template has been used
+        rating:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 5
+          description: Template rating
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when template was created
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp when template was last updated
+
+    TemplateDetail:
+      allOf:
+        - $ref: '#/components/schemas/Template'
+        - type: object
+          properties:
+            parameters:
+              type: array
+              items:
+                $ref: '#/components/schemas/TemplateParameter'
+            files:
+              type: array
+              items:
+                $ref: '#/components/schemas/TemplateFile'
+            analytics:
+              $ref: '#/components/schemas/TemplateAnalytics'
+
+    TemplateType:
+      type: string
+      enum: [project, service, component, config]
+      description: Type of template
+
+    TemplateStatus:
+      type: string
+      enum: [draft, validated, published, deprecated]
+      description: Current status of the template
+
+    CreateTemplateRequest:
+      type: object
+      required:
+        - name
+        - type
+        - category
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Template name
+        description:
+          type: string
+          maxLength: 500
+          description: Template description
+        type:
+          $ref: '#/components/schemas/TemplateType'
+        category:
+          type: string
+          description: Template category
+        supportedFrameworks:
+          type: array
+          items:
+            type: string
+          description: List of supported frameworks
+        supportedRuntimes:
+          type: array
+          items:
+            type: string
+          description: List of supported runtimes
+        tags:
+          type: array
+          items:
+            type: string
+          description: Template tags
+        parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/TemplateParameterInput'
+          description: Template parameters
+
+    UpdateTemplateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Template name
+        description:
+          type: string
+          maxLength: 500
+          description: Template description
+        category:
+          type: string
+          description: Template category
+        supportedFrameworks:
+          type: array
+          items:
+            type: string
+          description: List of supported frameworks
+        supportedRuntimes:
+          type: array
+          items:
+            type: string
+          description: List of supported runtimes
+        tags:
+          type: array
+          items:
+            type: string
+          description: Template tags
+
+    TemplateParameter:
+      type: object
+      required:
+        - name
+        - type
+        - required
+      properties:
+        name:
+          type: string
+          description: Parameter name
+        type:
+          type: string
+          enum: [string, integer, boolean, array, object]
+          description: Parameter type
+        description:
+          type: string
+          description: Parameter description
+        required:
+          type: boolean
+          description: Whether parameter is required
+        defaultValue:
+          description: Default value for the parameter
+        enumValues:
+          type: array
+          items:
+            type: string
+          description: Allowed values for the parameter
+        validationPattern:
+          type: string
+          description: Regex pattern for validation
+        minLength:
+          type: integer
+          minimum: 0
+          description: Minimum length for string parameters
+        maxLength:
+          type: integer
+          minimum: 0
+          description: Maximum length for string parameters
+        minimum:
+          type: number
+          description: Minimum value for numeric parameters
+        maximum:
+          type: number
+          description: Maximum value for numeric parameters
+
+    TemplateParameterInput:
+      type: object
+      required:
+        - name
+        - type
+        - required
+      properties:
+        name:
+          type: string
+          description: Parameter name
+        type:
+          type: string
+          enum: [string, integer, boolean, array, object]
+          description: Parameter type
+        description:
+          type: string
+          description: Parameter description
+        required:
+          type: boolean
+          description: Whether parameter is required
+        defaultValue:
+          description: Default value for the parameter
+        enumValues:
+          type: array
+          items:
+            type: string
+          description: Allowed values for the parameter
+        validationPattern:
+          type: string
+          description: Regex pattern for validation
+        minLength:
+          type: integer
+          minimum: 0
+          description: Minimum length for string parameters
+        maxLength:
+          type: integer
+          minimum: 0
+          description: Maximum length for string parameters
+        minimum:
+          type: number
+          description: Minimum value for numeric parameters
+        maximum:
+          type: number
+          description: Maximum value for numeric parameters
+
+    TemplateFile:
+      type: object
+      required:
+        - path
+        - size
+        - contentType
+      properties:
+        path:
+          type: string
+          description: File path within the template
+        size:
+          type: integer
+          minimum: 0
+          description: File size in bytes
+        contentType:
+          type: string
+          description: MIME type of the file
+        checksum:
+          type: string
+          description: MD5 checksum of the file content
+        lastModified:
+          type: string
+          format: date-time
+          description: Timestamp when file was last modified
+
+    TemplateFileContent:
+      type: object
+      properties:
+        path:
+          type: string
+          description: File path within the template
+        content:
+          type: string
+          description: File content
+        contentType:
+          type: string
+          description: MIME type of the file
+        size:
+          type: integer
+          description: File size in bytes
+        encoding:
+          type: string
+          description: File encoding (e.g., utf-8, base64)
+
+    RenderTemplateRequest:
+      type: object
+      required:
+        - parameters
+      properties:
+        parameters:
+          type: object
+          additionalProperties: true
+          description: Template parameters for rendering
+        outputFormat:
+          type: string
+          enum: [files, zip, json]
+          default: files
+          description: Output format for rendered template
+
+    PreviewTemplateRequest:
+      type: object
+      required:
+        - parameters
+      properties:
+        parameters:
+          type: object
+          additionalProperties: true
+          description: Template parameters for preview
+        previewFiles:
+          type: array
+          items:
+            type: string
+          description: Specific files to preview (if empty, preview all)
+
+    RenderedTemplate:
+      type: object
+      properties:
+        templateId:
+          type: string
+          description: Template ID that was rendered
+        files:
+          type: object
+          additionalProperties:
+            type: string
+          description: Rendered files (path -> content)
+        parameters:
+          type: object
+          additionalProperties: true
+          description: Parameters used for rendering
+        metadata:
+          type: object
+          properties:
+            renderTime:
+              type: string
+              format: date-time
+            processingTime:
+              type: number
+              format: float
+              description: Processing time in seconds
+            fileCount:
+              type: integer
+              description: Number of files rendered
+            totalSize:
+              type: integer
+              description: Total size of rendered files in bytes
+
+    TemplatePreview:
+      type: object
+      properties:
+        templateId:
+          type: string
+          description: Template ID that was previewed
+        preview:
+          type: object
+          additionalProperties:
+            type: string
+          description: Preview of rendered files (path -> content)
+        parameters:
+          type: object
+          additionalProperties: true
+          description: Parameters used for preview
+        metadata:
+          type: object
+          properties:
+            previewTime:
+              type: string
+              format: date-time
+            processingTime:
+              type: number
+              format: float
+              description: Processing time in seconds
+            fileCount:
+              type: integer
+              description: Number of files previewed
+
+    ValidationResult:
+      type: object
+      properties:
+        valid:
+          type: boolean
+          description: Whether the template is valid
+        errors:
+          type: array
+          items:
+            type: string
+          description: List of validation errors
+        warnings:
+          type: array
+          items:
+            type: string
+          description: List of validation warnings
+        checkedAt:
+          type: string
+          format: date-time
+          description: Timestamp when validation was performed
+
+    ParameterValidationResult:
+      type: object
+      properties:
+        valid:
+          type: boolean
+          description: Whether the parameters are valid
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              parameter:
+                type: string
+                description: Parameter name
+              message:
+                type: string
+                description: Error message
+              code:
+                type: string
+                description: Error code
+          description: List of parameter validation errors
+        warnings:
+          type: array
+          items:
+            type: object
+            properties:
+              parameter:
+                type: string
+                description: Parameter name
+              message:
+                type: string
+                description: Warning message
+              code:
+                type: string
+                description: Warning code
+          description: List of parameter validation warnings
+
+    TemplateAnalytics:
+      type: object
+      properties:
+        totalUsage:
+          type: integer
+          description: Total number of times template has been used
+        uniqueUsers:
+          type: integer
+          description: Number of unique users who have used the template
+        successRate:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Success rate for template usage
+        averageRating:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 5
+          description: Average rating for the template
+        usageByPeriod:
+          type: object
+          properties:
+            daily:
+              type: array
+              items:
+                type: object
+                properties:
+                  date:
+                    type: string
+                    format: date
+                  count:
+                    type: integer
+            weekly:
+              type: array
+              items:
+                type: object
+                properties:
+                  week:
+                    type: string
+                  count:
+                    type: integer
+            monthly:
+              type: array
+              items:
+                type: object
+                properties:
+                  month:
+                    type: string
+                  count:
+                    type: integer
+        topParameters:
+          type: array
+          items:
+            type: object
+            properties:
+              parameter:
+                type: string
+              values:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    value:
+                      type: string
+                    count:
+                      type: integer
+        errorPatterns:
+          type: array
+          items:
+            type: object
+            properties:
+              error:
+                type: string
+              count:
+                type: integer
+              lastOccurrence:
+                type: string
+                format: date-time
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Category identifier
+        name:
+          type: string
+          description: Category name
+        description:
+          type: string
+          description: Category description
+        templateCount:
+          type: integer
+          description: Number of templates in this category
+        icon:
+          type: string
+          description: Category icon name or URL
+
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, unhealthy, degraded]
+        timestamp:
+          type: string
+          format: date-time
+        checks:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              status:
+                type: string
+                enum: [pass, fail, warn]
+              details:
+                type: string
+
+    Pagination:
+      type: object
+      properties:
+        limit:
+          type: integer
+          description: Maximum number of items per page
+        offset:
+          type: integer
+          description: Number of items skipped
+        total:
+          type: integer
+          description: Total number of items
+        hasMore:
+          type: boolean
+          description: Whether there are more items
+
+    Meta:
+      type: object
+      properties:
+        requestId:
+          type: string
+          description: Unique identifier for the request
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp of the response
+        version:
+          type: string
+          description: API version
+
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: Error code
+        message:
+          type: string
+          description: Error message
+        details:
+          type: object
+          description: Additional error details
+        field:
+          type: string
+          description: Field that caused the error (for validation errors)
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                $ref: '#/components/schemas/Error'
+              meta:
+                $ref: '#/components/schemas/Meta'
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                $ref: '#/components/schemas/Error'
+              meta:
+                $ref: '#/components/schemas/Meta'
+
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                $ref: '#/components/schemas/Error'
+              meta:
+                $ref: '#/components/schemas/Meta'
+
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                $ref: '#/components/schemas/Error'
+              meta:
+                $ref: '#/components/schemas/Meta'
+
+    Conflict:
+      description: Conflict
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                $ref: '#/components/schemas/Error'
+              meta:
+                $ref: '#/components/schemas/Meta'
+
+    UnprocessableEntity:
+      description: Unprocessable entity
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                $ref: '#/components/schemas/Error'
+              meta:
+                $ref: '#/components/schemas/Meta'
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                $ref: '#/components/schemas/Error'
+              meta:
+                $ref: '#/components/schemas/Meta'
+
+tags:
+  - name: Templates
+    description: Template management operations
+  - name: Categories
+    description: Template category operations
+  - name: Health
+    description: Health check operations

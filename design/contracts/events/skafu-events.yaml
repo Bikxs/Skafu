@@ -1,0 +1,1630 @@
+asyncapi: 3.0.0
+info:
+  title: Skafu Event System
+  version: 1.0.0
+  description: |
+    Event-driven architecture for the Skafu microservices scaffolding platform.
+    This specification defines all domain events, their schemas, and the message flows
+    between different microservices in the system.
+  contact:
+    name: Skafu Platform Team
+    email: platform-team@skafu.dev
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  production:
+    host: eventbridge-prod.us-east-1.amazonaws.com
+    protocol: eventbridge
+    description: Production EventBridge
+    protocolVersion: '2015-10-07'
+  staging:
+    host: eventbridge-staging.us-east-1.amazonaws.com
+    protocol: eventbridge
+    description: Staging EventBridge
+    protocolVersion: '2015-10-07'
+  development:
+    host: eventbridge-dev.us-east-1.amazonaws.com
+    protocol: eventbridge
+    description: Development EventBridge
+    protocolVersion: '2015-10-07'
+
+defaultContentType: application/json
+
+channels:
+  projectManagement:
+    address: skafu.project-management
+    description: Project Management domain events
+    messages:
+      ProjectCreated:
+        $ref: '#/components/messages/ProjectCreated'
+      ProjectUpdated:
+        $ref: '#/components/messages/ProjectUpdated'
+      ProjectDeleted:
+        $ref: '#/components/messages/ProjectDeleted'
+      ProjectConfigured:
+        $ref: '#/components/messages/ProjectConfigured'
+      DeploymentStarted:
+        $ref: '#/components/messages/DeploymentStarted'
+      DeploymentCompleted:
+        $ref: '#/components/messages/DeploymentCompleted'
+      DeploymentFailed:
+        $ref: '#/components/messages/DeploymentFailed'
+      DeploymentCancelled:
+        $ref: '#/components/messages/DeploymentCancelled'
+
+  templateManagement:
+    address: skafu.template-management
+    description: Template Management domain events
+    messages:
+      TemplateUploaded:
+        $ref: '#/components/messages/TemplateUploaded'
+      TemplateValidated:
+        $ref: '#/components/messages/TemplateValidated'
+      TemplateValidationFailed:
+        $ref: '#/components/messages/TemplateValidationFailed'
+      TemplatePublished:
+        $ref: '#/components/messages/TemplatePublished'
+      TemplateRendered:
+        $ref: '#/components/messages/TemplateRendered'
+      TemplateUsageTracked:
+        $ref: '#/components/messages/TemplateUsageTracked'
+
+  aiIntegration:
+    address: skafu.ai-integration
+    description: AI Integration domain events
+    messages:
+      AIAnalysisStarted:
+        $ref: '#/components/messages/AIAnalysisStarted'
+      AIAnalysisCompleted:
+        $ref: '#/components/messages/AIAnalysisCompleted'
+      AIAnalysisFailed:
+        $ref: '#/components/messages/AIAnalysisFailed'
+      CodeGenerationStarted:
+        $ref: '#/components/messages/CodeGenerationStarted'
+      CodeGenerationCompleted:
+        $ref: '#/components/messages/CodeGenerationCompleted'
+      CodeGenerationFailed:
+        $ref: '#/components/messages/CodeGenerationFailed'
+      AIUsageLimitExceeded:
+        $ref: '#/components/messages/AIUsageLimitExceeded'
+
+  githubIntegration:
+    address: skafu.github-integration
+    description: GitHub Integration domain events
+    messages:
+      RepositoryCreationStarted:
+        $ref: '#/components/messages/RepositoryCreationStarted'
+      RepositoryCreated:
+        $ref: '#/components/messages/RepositoryCreated'
+      RepositoryCreationFailed:
+        $ref: '#/components/messages/RepositoryCreationFailed'
+      WorkflowTriggered:
+        $ref: '#/components/messages/WorkflowTriggered'
+      WorkflowCompleted:
+        $ref: '#/components/messages/WorkflowCompleted'
+      WorkflowFailed:
+        $ref: '#/components/messages/WorkflowFailed'
+      BranchProtectionUpdated:
+        $ref: '#/components/messages/BranchProtectionUpdated'
+
+  observability:
+    address: skafu.observability
+    description: Observability domain events
+    messages:
+      MetricAdded:
+        $ref: '#/components/messages/MetricAdded'
+      CustomMetricAdded:
+        $ref: '#/components/messages/CustomMetricAdded'
+      MetricsPublished:
+        $ref: '#/components/messages/MetricsPublished'
+      TraceCompleted:
+        $ref: '#/components/messages/TraceCompleted'
+      TraceError:
+        $ref: '#/components/messages/TraceError'
+      HealthCheckSucceeded:
+        $ref: '#/components/messages/HealthCheckSucceeded'
+      HealthCheckFailed:
+        $ref: '#/components/messages/HealthCheckFailed'
+      AlertTriggered:
+        $ref: '#/components/messages/AlertTriggered'
+      PerformanceThresholdExceeded:
+        $ref: '#/components/messages/PerformanceThresholdExceeded'
+
+  errorBus:
+    address: skafu.error-bus
+    description: Error handling and dead letter queue
+    messages:
+      ErrorOccurred:
+        $ref: '#/components/messages/ErrorOccurred'
+      EventProcessingFailed:
+        $ref: '#/components/messages/EventProcessingFailed'
+      DeadLetterEvent:
+        $ref: '#/components/messages/DeadLetterEvent'
+
+operations:
+  publishProjectCreated:
+    action: send
+    channel:
+      $ref: '#/channels/projectManagement'
+    messages:
+      - $ref: '#/components/messages/ProjectCreated'
+    description: Publish when a new project is created
+
+  publishProjectUpdated:
+    action: send
+    channel:
+      $ref: '#/channels/projectManagement'
+    messages:
+      - $ref: '#/components/messages/ProjectUpdated'
+    description: Publish when a project is updated
+
+  publishDeploymentStarted:
+    action: send
+    channel:
+      $ref: '#/channels/projectManagement'
+    messages:
+      - $ref: '#/components/messages/DeploymentStarted'
+    description: Publish when a deployment starts
+
+  publishDeploymentCompleted:
+    action: send
+    channel:
+      $ref: '#/channels/projectManagement'
+    messages:
+      - $ref: '#/components/messages/DeploymentCompleted'
+    description: Publish when a deployment completes
+
+  publishTemplateRendered:
+    action: send
+    channel:
+      $ref: '#/channels/templateManagement'
+    messages:
+      - $ref: '#/components/messages/TemplateRendered'
+    description: Publish when a template is rendered
+
+  publishAIAnalysisCompleted:
+    action: send
+    channel:
+      $ref: '#/channels/aiIntegration'
+    messages:
+      - $ref: '#/components/messages/AIAnalysisCompleted'
+    description: Publish when AI analysis is completed
+
+  publishRepositoryCreated:
+    action: send
+    channel:
+      $ref: '#/channels/githubIntegration'
+    messages:
+      - $ref: '#/components/messages/RepositoryCreated'
+    description: Publish when a repository is created
+
+  publishAlertTriggered:
+    action: send
+    channel:
+      $ref: '#/channels/observability'
+    messages:
+      - $ref: '#/components/messages/AlertTriggered'
+    description: Publish when an alert is triggered
+
+  publishErrorOccurred:
+    action: send
+    channel:
+      $ref: '#/channels/errorBus'
+    messages:
+      - $ref: '#/components/messages/ErrorOccurred'
+    description: Publish when an error occurs
+
+components:
+  messages:
+    # Project Management Events
+    ProjectCreated:
+      name: ProjectCreated
+      title: Project Created
+      summary: A new project has been created
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/EventHeaders'
+      payload:
+        $ref: '#/components/schemas/ProjectCreatedPayload'
+
+    ProjectUpdated:
+      name: ProjectUpdated
+      title: Project Updated
+      summary: A project has been updated
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/EventHeaders'
+      payload:
+        $ref: '#/components/schemas/ProjectUpdatedPayload'
+
+    ProjectDeleted:
+      name: ProjectDeleted
+      title: Project Deleted
+      summary: A project has been deleted
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/EventHeaders'
+      payload:
+        $ref: '#/components/schemas/ProjectDeletedPayload'
+
+    ProjectConfigured:
+      name: ProjectConfigured
+      title: Project Configured
+      summary: A project has been configured
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/EventHeaders'
+      payload:
+        $ref: '#/components/schemas/ProjectConfiguredPayload'
+
+    DeploymentStarted:
+      name: DeploymentStarted
+      title: Deployment Started
+      summary: A deployment has started
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/EventHeaders'
+      payload:
+        $ref: '#/components/schemas/DeploymentStartedPayload'
+
+    DeploymentCompleted:
+      name: DeploymentCompleted
+      title: Deployment Completed
+      summary: A deployment has completed successfully
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/EventHeaders'
+      payload:
+        $ref: '#/components/schemas/DeploymentCompletedPayload'
+
+    DeploymentFailed:
+      name: DeploymentFailed
+      title: Deployment Failed
+      summary: A deployment has failed
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/EventHeaders'
+      payload:
+        $ref: '#/components/schemas/DeploymentFailedPayload'
+
+    DeploymentCancelled:
+      name: DeploymentCancelled
+      title: Deployment Cancelled
+      summary: A deployment has been cancelled
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/EventHeaders'
+      payload:
+        $ref: '#/components/schemas/DeploymentCancelledPayload'
+
+    # Template Management Events
+    TemplateUploaded:
+      name: TemplateUploaded
+      title: Template Uploaded
+      summary: A new template has been uploaded
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/EventHeaders'
+      payload:
+        $ref: '#/components/schemas/TemplateUploadedPayload'
+
+    TemplateValidated:
+      name: TemplateValidated
+      title: Template Validated
+      summary: A template has been validated successfully
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/EventHeaders'
+      payload:
+        $ref: '#/components/schemas/TemplateValidatedPayload'
+
+    TemplateValidationFailed:
+      name: TemplateValidationFailed
+      title: Template Validation Failed
+      summary: Template validation has failed
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/EventHeaders'
+      payload:
+        $ref: '#/components/schemas/TemplateValidationFailedPayload'
+
+    TemplatePublished:
+      name: TemplatePublished
+      title: Template Published
+      summary: A template has been published
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/EventHeaders'
+      payload:
+        $ref: '#/components/schemas/TemplatePublishedPayload'
+
+    TemplateRendered:
+      name: TemplateRendered
+      title: Template Rendered
+      summary: A template has been rendered
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/EventHeaders'
+      payload:
+        $ref: '#/components/schemas/TemplateRenderedPayload'
+
+    TemplateUsageTracked:
+      name: TemplateUsageTracked
+      title: Template Usage Tracked
+      summary: Template usage has been tracked
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/EventHeaders'
+      payload:
+        $ref: '#/components/schemas/TemplateUsageTrackedPayload'
+
+    # AI Integration Events
+    AIAnalysisStarted:
+      name: AIAnalysisStarted
+      title: AI Analysis Started
+      summary: AI analysis has started
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/EventHeaders'
+      payload:
+        $ref: '#/components/schemas/AIAnalysisStartedPayload'
+
+    AIAnalysisCompleted:
+      name: AIAnalysisCompleted
+      title: AI Analysis Completed
+      summary: AI analysis has completed
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/EventHeaders'
+      payload:
+        $ref: '#/components/schemas/AIAnalysisCompletedPayload'
+
+    AIAnalysisFailed:
+      name: AIAnalysisFailed
+      title: AI Analysis Failed
+      summary: AI analysis has failed
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/EventHeaders'
+      payload:
+        $ref: '#/components/schemas/AIAnalysisFailedPayload'
+
+    CodeGenerationStarted:
+      name: CodeGenerationStarted
+      title: Code Generation Started
+      summary: Code generation has started
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/EventHeaders'
+      payload:
+        $ref: '#/components/schemas/CodeGenerationStartedPayload'
+
+    CodeGenerationCompleted:
+      name: CodeGenerationCompleted
+      title: Code Generation Completed
+      summary: Code generation has completed
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/EventHeaders'
+      payload:
+        $ref: '#/components/schemas/CodeGenerationCompletedPayload'
+
+    CodeGenerationFailed:
+      name: CodeGenerationFailed
+      title: Code Generation Failed
+      summary: Code generation has failed
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/EventHeaders'
+      payload:
+        $ref: '#/components/schemas/CodeGenerationFailedPayload'
+
+    AIUsageLimitExceeded:
+      name: AIUsageLimitExceeded
+      title: AI Usage Limit Exceeded
+      summary: AI usage limit has been exceeded
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/EventHeaders'
+      payload:
+        $ref: '#/components/schemas/AIUsageLimitExceededPayload'
+
+    # GitHub Integration Events
+    RepositoryCreationStarted:
+      name: RepositoryCreationStarted
+      title: Repository Creation Started
+      summary: Repository creation has started
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/EventHeaders'
+      payload:
+        $ref: '#/components/schemas/RepositoryCreationStartedPayload'
+
+    RepositoryCreated:
+      name: RepositoryCreated
+      title: Repository Created
+      summary: A repository has been created
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/EventHeaders'
+      payload:
+        $ref: '#/components/schemas/RepositoryCreatedPayload'
+
+    RepositoryCreationFailed:
+      name: RepositoryCreationFailed
+      title: Repository Creation Failed
+      summary: Repository creation has failed
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/EventHeaders'
+      payload:
+        $ref: '#/components/schemas/RepositoryCreationFailedPayload'
+
+    WorkflowTriggered:
+      name: WorkflowTriggered
+      title: Workflow Triggered
+      summary: A workflow has been triggered
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/EventHeaders'
+      payload:
+        $ref: '#/components/schemas/WorkflowTriggeredPayload'
+
+    WorkflowCompleted:
+      name: WorkflowCompleted
+      title: Workflow Completed
+      summary: A workflow has completed
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/EventHeaders'
+      payload:
+        $ref: '#/components/schemas/WorkflowCompletedPayload'
+
+    WorkflowFailed:
+      name: WorkflowFailed
+      title: Workflow Failed
+      summary: A workflow has failed
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/EventHeaders'
+      payload:
+        $ref: '#/components/schemas/WorkflowFailedPayload'
+
+    BranchProtectionUpdated:
+      name: BranchProtectionUpdated
+      title: Branch Protection Updated
+      summary: Branch protection rules have been updated
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/EventHeaders'
+      payload:
+        $ref: '#/components/schemas/BranchProtectionUpdatedPayload'
+
+    # Observability Events
+    MetricAdded:
+      name: MetricAdded
+      title: Metric Added
+      summary: A metric has been added
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/EventHeaders'
+      payload:
+        $ref: '#/components/schemas/MetricAddedPayload'
+
+    CustomMetricAdded:
+      name: CustomMetricAdded
+      title: Custom Metric Added
+      summary: A custom metric has been added
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/EventHeaders'
+      payload:
+        $ref: '#/components/schemas/CustomMetricAddedPayload'
+
+    MetricsPublished:
+      name: MetricsPublished
+      title: Metrics Published
+      summary: Metrics have been published
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/EventHeaders'
+      payload:
+        $ref: '#/components/schemas/MetricsPublishedPayload'
+
+    TraceCompleted:
+      name: TraceCompleted
+      title: Trace Completed
+      summary: A trace has been completed
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/EventHeaders'
+      payload:
+        $ref: '#/components/schemas/TraceCompletedPayload'
+
+    TraceError:
+      name: TraceError
+      title: Trace Error
+      summary: A trace has encountered an error
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/EventHeaders'
+      payload:
+        $ref: '#/components/schemas/TraceErrorPayload'
+
+    HealthCheckSucceeded:
+      name: HealthCheckSucceeded
+      title: Health Check Succeeded
+      summary: A health check has succeeded
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/EventHeaders'
+      payload:
+        $ref: '#/components/schemas/HealthCheckSucceededPayload'
+
+    HealthCheckFailed:
+      name: HealthCheckFailed
+      title: Health Check Failed
+      summary: A health check has failed
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/EventHeaders'
+      payload:
+        $ref: '#/components/schemas/HealthCheckFailedPayload'
+
+    AlertTriggered:
+      name: AlertTriggered
+      title: Alert Triggered
+      summary: An alert has been triggered
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/EventHeaders'
+      payload:
+        $ref: '#/components/schemas/AlertTriggeredPayload'
+
+    PerformanceThresholdExceeded:
+      name: PerformanceThresholdExceeded
+      title: Performance Threshold Exceeded
+      summary: A performance threshold has been exceeded
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/EventHeaders'
+      payload:
+        $ref: '#/components/schemas/PerformanceThresholdExceededPayload'
+
+    # Error Bus Events
+    ErrorOccurred:
+      name: ErrorOccurred
+      title: Error Occurred
+      summary: An error has occurred in the system
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/EventHeaders'
+      payload:
+        $ref: '#/components/schemas/ErrorOccurredPayload'
+
+    EventProcessingFailed:
+      name: EventProcessingFailed
+      title: Event Processing Failed
+      summary: Event processing has failed
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/EventHeaders'
+      payload:
+        $ref: '#/components/schemas/EventProcessingFailedPayload'
+
+    DeadLetterEvent:
+      name: DeadLetterEvent
+      title: Dead Letter Event
+      summary: An event has been moved to the dead letter queue
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/EventHeaders'
+      payload:
+        $ref: '#/components/schemas/DeadLetterEventPayload'
+
+  schemas:
+    EventHeaders:
+      type: object
+      properties:
+        eventId:
+          type: string
+          format: uuid
+          description: Unique identifier for the event
+        eventType:
+          type: string
+          description: Type of the event
+        eventVersion:
+          type: string
+          description: Version of the event schema
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp when the event occurred
+        correlationId:
+          type: string
+          format: uuid
+          description: Correlation ID for tracking related events
+        causationId:
+          type: string
+          format: uuid
+          description: ID of the event that caused this event
+        source:
+          type: string
+          description: Source service that generated the event
+        subject:
+          type: string
+          description: Subject of the event (e.g., aggregate ID)
+      required:
+        - eventId
+        - eventType
+        - eventVersion
+        - timestamp
+        - source
+        - subject
+
+    # Project Management Payloads
+    ProjectCreatedPayload:
+      type: object
+      properties:
+        projectId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        templateId:
+          type: string
+        ownerId:
+          type: string
+          format: uuid
+        configuration:
+          type: object
+      required:
+        - projectId
+        - name
+        - templateId
+        - ownerId
+
+    ProjectUpdatedPayload:
+      type: object
+      properties:
+        projectId:
+          type: string
+          format: uuid
+        changes:
+          type: object
+          description: Object containing the changed fields
+        previousValues:
+          type: object
+          description: Previous values of changed fields
+      required:
+        - projectId
+        - changes
+
+    ProjectDeletedPayload:
+      type: object
+      properties:
+        projectId:
+          type: string
+          format: uuid
+        reason:
+          type: string
+          description: Reason for deletion
+      required:
+        - projectId
+
+    ProjectConfiguredPayload:
+      type: object
+      properties:
+        projectId:
+          type: string
+          format: uuid
+        configuration:
+          type: object
+        configurationVersion:
+          type: string
+      required:
+        - projectId
+        - configuration
+
+    DeploymentStartedPayload:
+      type: object
+      properties:
+        deploymentId:
+          type: string
+          format: uuid
+        projectId:
+          type: string
+          format: uuid
+        environment:
+          type: string
+          enum: [development, staging, production]
+        version:
+          type: string
+        commitHash:
+          type: string
+      required:
+        - deploymentId
+        - projectId
+        - environment
+
+    DeploymentCompletedPayload:
+      type: object
+      properties:
+        deploymentId:
+          type: string
+          format: uuid
+        projectId:
+          type: string
+          format: uuid
+        environment:
+          type: string
+          enum: [development, staging, production]
+        duration:
+          type: integer
+          description: Deployment duration in seconds
+        success:
+          type: boolean
+        deploymentUrl:
+          type: string
+          format: uri
+      required:
+        - deploymentId
+        - projectId
+        - environment
+        - duration
+        - success
+
+    DeploymentFailedPayload:
+      type: object
+      properties:
+        deploymentId:
+          type: string
+          format: uuid
+        projectId:
+          type: string
+          format: uuid
+        environment:
+          type: string
+          enum: [development, staging, production]
+        error:
+          type: string
+        failureReason:
+          type: string
+        logs:
+          type: array
+          items:
+            type: string
+      required:
+        - deploymentId
+        - projectId
+        - environment
+        - error
+
+    DeploymentCancelledPayload:
+      type: object
+      properties:
+        deploymentId:
+          type: string
+          format: uuid
+        projectId:
+          type: string
+          format: uuid
+        environment:
+          type: string
+          enum: [development, staging, production]
+        reason:
+          type: string
+        cancelledBy:
+          type: string
+          format: uuid
+      required:
+        - deploymentId
+        - projectId
+        - environment
+        - reason
+
+    # Template Management Payloads
+    TemplateUploadedPayload:
+      type: object
+      properties:
+        templateId:
+          type: string
+        templateName:
+          type: string
+        templateType:
+          type: string
+          enum: [project, service]
+        uploadedBy:
+          type: string
+          format: uuid
+        fileCount:
+          type: integer
+      required:
+        - templateId
+        - templateName
+        - templateType
+        - uploadedBy
+
+    TemplateValidatedPayload:
+      type: object
+      properties:
+        templateId:
+          type: string
+        validationResults:
+          type: object
+          properties:
+            isValid:
+              type: boolean
+            warnings:
+              type: array
+              items:
+                type: string
+      required:
+        - templateId
+        - validationResults
+
+    TemplateValidationFailedPayload:
+      type: object
+      properties:
+        templateId:
+          type: string
+        errors:
+          type: array
+          items:
+            type: string
+        validationResults:
+          type: object
+      required:
+        - templateId
+        - errors
+
+    TemplatePublishedPayload:
+      type: object
+      properties:
+        templateId:
+          type: string
+        templateName:
+          type: string
+        templateType:
+          type: string
+          enum: [project, service]
+        publishedBy:
+          type: string
+          format: uuid
+      required:
+        - templateId
+        - templateName
+        - templateType
+        - publishedBy
+
+    TemplateRenderedPayload:
+      type: object
+      properties:
+        templateId:
+          type: string
+        projectId:
+          type: string
+          format: uuid
+        outputFiles:
+          type: array
+          items:
+            type: string
+        parameters:
+          type: object
+      required:
+        - templateId
+        - outputFiles
+
+    TemplateUsageTrackedPayload:
+      type: object
+      properties:
+        templateId:
+          type: string
+        projectId:
+          type: string
+          format: uuid
+        success:
+          type: boolean
+        usageType:
+          type: string
+          enum: [render, preview, download]
+      required:
+        - templateId
+        - success
+        - usageType
+
+    # AI Integration Payloads
+    AIAnalysisStartedPayload:
+      type: object
+      properties:
+        analysisId:
+          type: string
+          format: uuid
+        projectId:
+          type: string
+          format: uuid
+        analysisType:
+          type: string
+          enum: [requirements, architecture, optimization]
+        requestedBy:
+          type: string
+          format: uuid
+      required:
+        - analysisId
+        - projectId
+        - analysisType
+        - requestedBy
+
+    AIAnalysisCompletedPayload:
+      type: object
+      properties:
+        analysisId:
+          type: string
+          format: uuid
+        projectId:
+          type: string
+          format: uuid
+        analysisType:
+          type: string
+          enum: [requirements, architecture, optimization]
+        recommendations:
+          type: array
+          items:
+            type: object
+            properties:
+              title:
+                type: string
+              description:
+                type: string
+              priority:
+                type: string
+                enum: [high, medium, low]
+              category:
+                type: string
+        confidenceScore:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        tokensUsed:
+          type: integer
+        cost:
+          type: number
+          format: float
+      required:
+        - analysisId
+        - projectId
+        - analysisType
+        - recommendations
+        - confidenceScore
+
+    AIAnalysisFailedPayload:
+      type: object
+      properties:
+        analysisId:
+          type: string
+          format: uuid
+        projectId:
+          type: string
+          format: uuid
+        errorMessage:
+          type: string
+        retryCount:
+          type: integer
+      required:
+        - analysisId
+        - projectId
+        - errorMessage
+
+    CodeGenerationStartedPayload:
+      type: object
+      properties:
+        generationId:
+          type: string
+          format: uuid
+        projectId:
+          type: string
+          format: uuid
+        generationType:
+          type: string
+          enum: [service, config, tests]
+        requestedBy:
+          type: string
+          format: uuid
+      required:
+        - generationId
+        - projectId
+        - generationType
+        - requestedBy
+
+    CodeGenerationCompletedPayload:
+      type: object
+      properties:
+        generationId:
+          type: string
+          format: uuid
+        projectId:
+          type: string
+          format: uuid
+        generationType:
+          type: string
+          enum: [service, config, tests]
+        generatedFiles:
+          type: array
+          items:
+            type: string
+        tokensUsed:
+          type: integer
+        cost:
+          type: number
+          format: float
+      required:
+        - generationId
+        - projectId
+        - generationType
+        - generatedFiles
+
+    CodeGenerationFailedPayload:
+      type: object
+      properties:
+        generationId:
+          type: string
+          format: uuid
+        projectId:
+          type: string
+          format: uuid
+        errors:
+          type: array
+          items:
+            type: string
+        retryCount:
+          type: integer
+      required:
+        - generationId
+        - projectId
+        - errors
+
+    AIUsageLimitExceededPayload:
+      type: object
+      properties:
+        operation:
+          type: string
+          enum: [project_analysis, code_generation, architecture_review]
+        userId:
+          type: string
+          format: uuid
+        limit:
+          type: integer
+        currentUsage:
+          type: integer
+        resetTime:
+          type: string
+          format: date-time
+      required:
+        - operation
+        - userId
+        - limit
+        - currentUsage
+
+    # GitHub Integration Payloads
+    RepositoryCreationStartedPayload:
+      type: object
+      properties:
+        repositoryId:
+          type: string
+          format: uuid
+        projectId:
+          type: string
+          format: uuid
+        fullName:
+          type: string
+          description: Repository full name (owner/repo)
+        isPrivate:
+          type: boolean
+      required:
+        - repositoryId
+        - projectId
+        - fullName
+
+    RepositoryCreatedPayload:
+      type: object
+      properties:
+        repositoryId:
+          type: string
+          format: uuid
+        projectId:
+          type: string
+          format: uuid
+        fullName:
+          type: string
+          description: Repository full name (owner/repo)
+        githubId:
+          type: integer
+          description: GitHub repository ID
+        cloneUrl:
+          type: string
+          format: uri
+        webUrl:
+          type: string
+          format: uri
+        defaultBranch:
+          type: string
+      required:
+        - repositoryId
+        - projectId
+        - fullName
+        - githubId
+        - cloneUrl
+        - webUrl
+
+    RepositoryCreationFailedPayload:
+      type: object
+      properties:
+        repositoryId:
+          type: string
+          format: uuid
+        projectId:
+          type: string
+          format: uuid
+        fullName:
+          type: string
+        error:
+          type: string
+        errorCode:
+          type: string
+      required:
+        - repositoryId
+        - projectId
+        - fullName
+        - error
+
+    WorkflowTriggeredPayload:
+      type: object
+      properties:
+        workflowId:
+          type: string
+          format: uuid
+        repositoryId:
+          type: string
+          format: uuid
+        projectId:
+          type: string
+          format: uuid
+        workflowName:
+          type: string
+        triggerEvent:
+          type: string
+        branch:
+          type: string
+        commitSha:
+          type: string
+      required:
+        - workflowId
+        - repositoryId
+        - projectId
+        - workflowName
+        - triggerEvent
+
+    WorkflowCompletedPayload:
+      type: object
+      properties:
+        workflowId:
+          type: string
+          format: uuid
+        repositoryId:
+          type: string
+          format: uuid
+        projectId:
+          type: string
+          format: uuid
+        workflowName:
+          type: string
+        success:
+          type: boolean
+        duration:
+          type: integer
+          description: Workflow duration in seconds
+        conclusion:
+          type: string
+          enum: [success, failure, cancelled, timed_out]
+      required:
+        - workflowId
+        - repositoryId
+        - projectId
+        - workflowName
+        - success
+        - conclusion
+
+    WorkflowFailedPayload:
+      type: object
+      properties:
+        workflowId:
+          type: string
+          format: uuid
+        repositoryId:
+          type: string
+          format: uuid
+        projectId:
+          type: string
+          format: uuid
+        workflowName:
+          type: string
+        error:
+          type: string
+        failureReason:
+          type: string
+        logs:
+          type: array
+          items:
+            type: string
+      required:
+        - workflowId
+        - repositoryId
+        - projectId
+        - workflowName
+        - error
+
+    BranchProtectionUpdatedPayload:
+      type: object
+      properties:
+        repositoryId:
+          type: string
+          format: uuid
+        projectId:
+          type: string
+          format: uuid
+        branch:
+          type: string
+        protectionRules:
+          type: object
+          properties:
+            requiredStatusChecks:
+              type: array
+              items:
+                type: string
+            enforceAdmins:
+              type: boolean
+            requiredPullRequestReviews:
+              type: boolean
+            dismissStaleReviews:
+              type: boolean
+            requiredApprovingReviewCount:
+              type: integer
+        updatedBy:
+          type: string
+          format: uuid
+      required:
+        - repositoryId
+        - projectId
+        - branch
+        - protectionRules
+
+    # Observability Payloads
+    MetricAddedPayload:
+      type: object
+      properties:
+        metricsId:
+          type: string
+          format: uuid
+        metricName:
+          type: string
+        value:
+          type: number
+        unit:
+          type: string
+        dimensions:
+          type: object
+          additionalProperties:
+            type: string
+        serviceName:
+          type: string
+      required:
+        - metricsId
+        - metricName
+        - value
+        - serviceName
+
+    CustomMetricAddedPayload:
+      type: object
+      properties:
+        metricsId:
+          type: string
+          format: uuid
+        metricName:
+          type: string
+        value:
+          type: number
+        businessContext:
+          type: string
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+        serviceName:
+          type: string
+      required:
+        - metricsId
+        - metricName
+        - value
+        - businessContext
+        - serviceName
+
+    MetricsPublishedPayload:
+      type: object
+      properties:
+        metricsId:
+          type: string
+          format: uuid
+        metricCount:
+          type: integer
+        publishedTo:
+          type: string
+          enum: [cloudwatch, custom]
+        serviceName:
+          type: string
+      required:
+        - metricsId
+        - metricCount
+        - publishedTo
+        - serviceName
+
+    TraceCompletedPayload:
+      type: object
+      properties:
+        traceId:
+          type: string
+        serviceName:
+          type: string
+        operationName:
+          type: string
+        duration:
+          type: number
+          format: float
+        spanCount:
+          type: integer
+        errorCount:
+          type: integer
+      required:
+        - traceId
+        - serviceName
+        - operationName
+        - duration
+
+    TraceErrorPayload:
+      type: object
+      properties:
+        traceId:
+          type: string
+        serviceName:
+          type: string
+        operationName:
+          type: string
+        errorMessage:
+          type: string
+        errorType:
+          type: string
+        stackTrace:
+          type: string
+      required:
+        - traceId
+        - serviceName
+        - operationName
+        - errorMessage
+
+    HealthCheckSucceededPayload:
+      type: object
+      properties:
+        healthCheckId:
+          type: string
+        serviceName:
+          type: string
+        endpoint:
+          type: string
+        responseTime:
+          type: number
+          format: float
+        statusCode:
+          type: integer
+      required:
+        - healthCheckId
+        - serviceName
+        - endpoint
+        - responseTime
+
+    HealthCheckFailedPayload:
+      type: object
+      properties:
+        healthCheckId:
+          type: string
+        serviceName:
+          type: string
+        endpoint:
+          type: string
+        errorMessage:
+          type: string
+        consecutiveFailures:
+          type: integer
+        statusCode:
+          type: integer
+      required:
+        - healthCheckId
+        - serviceName
+        - endpoint
+        - errorMessage
+        - consecutiveFailures
+
+    AlertTriggeredPayload:
+      type: object
+      properties:
+        alertId:
+          type: string
+          format: uuid
+        alertName:
+          type: string
+        severity:
+          type: string
+          enum: [critical, high, medium, low, info]
+        message:
+          type: string
+        threshold:
+          type: number
+        actualValue:
+          type: number
+        serviceName:
+          type: string
+        metricName:
+          type: string
+        escalationLevel:
+          type: integer
+      required:
+        - alertId
+        - alertName
+        - severity
+        - message
+        - serviceName
+
+    PerformanceThresholdExceededPayload:
+      type: object
+      properties:
+        serviceName:
+          type: string
+        metricName:
+          type: string
+        threshold:
+          type: number
+        actualValue:
+          type: number
+        exceedanceDuration:
+          type: integer
+          description: Duration in seconds that threshold was exceeded
+        severity:
+          type: string
+          enum: [critical, high, medium, low]
+      required:
+        - serviceName
+        - metricName
+        - threshold
+        - actualValue
+        - severity
+
+    # Error Bus Payloads
+    ErrorOccurredPayload:
+      type: object
+      properties:
+        errorId:
+          type: string
+          format: uuid
+        serviceName:
+          type: string
+        operationName:
+          type: string
+        errorType:
+          type: string
+        errorMessage:
+          type: string
+        stackTrace:
+          type: string
+        context:
+          type: object
+          additionalProperties: true
+        severity:
+          type: string
+          enum: [critical, high, medium, low]
+        userId:
+          type: string
+          format: uuid
+        requestId:
+          type: string
+          format: uuid
+        userAgent:
+          type: string
+        ipAddress:
+          type: string
+      required:
+        - errorId
+        - serviceName
+        - operationName
+        - errorType
+        - errorMessage
+        - severity
+
+    EventProcessingFailedPayload:
+      type: object
+      properties:
+        originalEventId:
+          type: string
+          format: uuid
+        originalEventType:
+          type: string
+        processingService:
+          type: string
+        errorMessage:
+          type: string
+        retryCount:
+          type: integer
+        maxRetries:
+          type: integer
+        nextRetryAt:
+          type: string
+          format: date-time
+        originalEvent:
+          type: object
+          additionalProperties: true
+      required:
+        - originalEventId
+        - originalEventType
+        - processingService
+        - errorMessage
+        - retryCount
+        - maxRetries
+
+    DeadLetterEventPayload:
+      type: object
+      properties:
+        originalEventId:
+          type: string
+          format: uuid
+        originalEventType:
+          type: string
+        processingService:
+          type: string
+        finalError:
+          type: string
+        totalRetries:
+          type: integer
+        firstFailureAt:
+          type: string
+          format: date-time
+        lastFailureAt:
+          type: string
+          format: date-time
+        originalEvent:
+          type: object
+          additionalProperties: true
+      required:
+        - originalEventId
+        - originalEventType
+        - processingService
+        - finalError
+        - totalRetries
+        - firstFailureAt
+        - lastFailureAt
+        - originalEvent
+
+tags:
+  - name: ProjectManagement
+    description: Project lifecycle and deployment events
+  - name: TemplateManagement
+    description: Template processing and validation events
+  - name: AIIntegration
+    description: AI analysis and code generation events
+  - name: GitHubIntegration
+    description: Repository and workflow management events
+  - name: Observability
+    description: Monitoring, metrics, and alerting events
+  - name: ErrorHandling
+    description: Error management and dead letter events

@@ -1,0 +1,863 @@
+openapi: 3.0.3
+info:
+  title: Skafu Project Management API
+  description: API for managing projects, deployments, and configurations in the Skafu microservices scaffolding platform
+  version: 1.0.0
+  contact:
+    name: Skafu Platform Team
+    email: platform-team@skafu.dev
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.skafu.dev/v1
+    description: Production server
+  - url: https://api-staging.skafu.dev/v1
+    description: Staging server
+  - url: http://localhost:3000/v1
+    description: Local development server
+
+security:
+  - BearerAuth: []
+  - ApiKeyAuth: []
+
+paths:
+  /projects:
+    get:
+      summary: List projects
+      description: Retrieve a paginated list of projects for the authenticated user
+      operationId: listProjects
+      tags:
+        - Projects
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+        - $ref: '#/components/parameters/SortBy'
+        - $ref: '#/components/parameters/SortOrder'
+        - name: status
+          in: query
+          description: Filter projects by status
+          schema:
+            $ref: '#/components/schemas/ProjectStatus'
+        - name: templateId
+          in: query
+          description: Filter projects by template ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of projects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Project'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      summary: Create project
+      description: Create a new project with the specified configuration
+      operationId: createProject
+      tags:
+        - Projects
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProjectRequest'
+      responses:
+        '201':
+          description: Project created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Project'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /projects/{projectId}:
+    parameters:
+      - $ref: '#/components/parameters/ProjectId'
+    
+    get:
+      summary: Get project
+      description: Retrieve detailed information about a specific project
+      operationId: getProject
+      tags:
+        - Projects
+      responses:
+        '200':
+          description: Project details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ProjectDetail'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      summary: Update project
+      description: Update an existing project's configuration
+      operationId: updateProject
+      tags:
+        - Projects
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProjectRequest'
+      responses:
+        '200':
+          description: Project updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Project'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      summary: Delete project
+      description: Delete a project and all its associated resources
+      operationId: deleteProject
+      tags:
+        - Projects
+      responses:
+        '204':
+          description: Project deleted successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /projects/{projectId}/deploy:
+    parameters:
+      - $ref: '#/components/parameters/ProjectId'
+    
+    post:
+      summary: Deploy project
+      description: Deploy a project to the specified environment
+      operationId: deployProject
+      tags:
+        - Projects
+        - Deployments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeploymentRequest'
+      responses:
+        '202':
+          description: Deployment started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Deployment'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /projects/{projectId}/deployments:
+    parameters:
+      - $ref: '#/components/parameters/ProjectId'
+    
+    get:
+      summary: List deployments
+      description: Retrieve deployment history for a project
+      operationId: listDeployments
+      tags:
+        - Deployments
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+        - name: status
+          in: query
+          description: Filter deployments by status
+          schema:
+            $ref: '#/components/schemas/DeploymentStatus'
+        - name: environment
+          in: query
+          description: Filter deployments by environment
+          schema:
+            type: string
+            enum: [development, staging, production]
+      responses:
+        '200':
+          description: List of deployments
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Deployment'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /deployments/{deploymentId}:
+    parameters:
+      - $ref: '#/components/parameters/DeploymentId'
+    
+    get:
+      summary: Get deployment
+      description: Retrieve detailed information about a specific deployment
+      operationId: getDeployment
+      tags:
+        - Deployments
+      responses:
+        '200':
+          description: Deployment details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/DeploymentDetail'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /deployments/{deploymentId}/cancel:
+    parameters:
+      - $ref: '#/components/parameters/DeploymentId'
+    
+    post:
+      summary: Cancel deployment
+      description: Cancel a running deployment
+      operationId: cancelDeployment
+      tags:
+        - Deployments
+      responses:
+        '200':
+          description: Deployment cancelled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Deployment'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /health:
+    get:
+      summary: Health check
+      description: Check the health status of the API
+      operationId: healthCheck
+      tags:
+        - Health
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+        '503':
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  parameters:
+    ProjectId:
+      name: projectId
+      in: path
+      required: true
+      description: Unique identifier for the project
+      schema:
+        type: string
+        format: uuid
+    DeploymentId:
+      name: deploymentId
+      in: path
+      required: true
+      description: Unique identifier for the deployment
+      schema:
+        type: string
+        format: uuid
+    Limit:
+      name: limit
+      in: query
+      description: Maximum number of items to return
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    Offset:
+      name: offset
+      in: query
+      description: Number of items to skip
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    SortBy:
+      name: sortBy
+      in: query
+      description: Field to sort by
+      schema:
+        type: string
+        enum: [name, createdAt, updatedAt, status]
+        default: createdAt
+    SortOrder:
+      name: sortOrder
+      in: query
+      description: Sort order
+      schema:
+        type: string
+        enum: [asc, desc]
+        default: desc
+
+  schemas:
+    Project:
+      type: object
+      required:
+        - id
+        - name
+        - status
+        - templateId
+        - ownerId
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the project
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Project name
+        description:
+          type: string
+          maxLength: 500
+          description: Project description
+        status:
+          $ref: '#/components/schemas/ProjectStatus'
+        templateId:
+          type: string
+          description: Template used for the project
+        ownerId:
+          type: string
+          format: uuid
+          description: User ID of the project owner
+        configuration:
+          $ref: '#/components/schemas/ProjectConfiguration'
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the project was created
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp when the project was last updated
+
+    ProjectDetail:
+      allOf:
+        - $ref: '#/components/schemas/Project'
+        - type: object
+          properties:
+            deployments:
+              type: array
+              items:
+                $ref: '#/components/schemas/Deployment'
+            analytics:
+              $ref: '#/components/schemas/ProjectAnalytics'
+
+    ProjectStatus:
+      type: string
+      enum:
+        - draft
+        - configuring
+        - ready
+        - deploying
+        - deployed
+        - failed
+        - archived
+      description: Current status of the project
+
+    ProjectConfiguration:
+      type: object
+      required:
+        - runtime
+        - region
+      properties:
+        runtime:
+          type: string
+          enum: [python3.9, python3.10, python3.11, nodejs18, nodejs20]
+          description: Runtime environment for the project
+        region:
+          type: string
+          description: AWS region for deployment
+        features:
+          type: array
+          items:
+            type: string
+          description: List of enabled features
+        environment:
+          type: object
+          additionalProperties:
+            type: string
+          description: Environment variables
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+          description: Project tags
+
+    CreateProjectRequest:
+      type: object
+      required:
+        - name
+        - templateId
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Project name
+        description:
+          type: string
+          maxLength: 500
+          description: Project description
+        templateId:
+          type: string
+          description: Template ID to use for the project
+        configuration:
+          $ref: '#/components/schemas/ProjectConfiguration'
+
+    UpdateProjectRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Project name
+        description:
+          type: string
+          maxLength: 500
+          description: Project description
+        configuration:
+          $ref: '#/components/schemas/ProjectConfiguration'
+
+    Deployment:
+      type: object
+      required:
+        - id
+        - projectId
+        - status
+        - environment
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the deployment
+        projectId:
+          type: string
+          format: uuid
+          description: Project ID
+        status:
+          $ref: '#/components/schemas/DeploymentStatus'
+        environment:
+          type: string
+          enum: [development, staging, production]
+          description: Target environment
+        version:
+          type: string
+          description: Deployment version
+        commitHash:
+          type: string
+          description: Git commit hash
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when deployment was created
+        startedAt:
+          type: string
+          format: date-time
+          description: Timestamp when deployment started
+        completedAt:
+          type: string
+          format: date-time
+          description: Timestamp when deployment completed
+        duration:
+          type: integer
+          description: Deployment duration in seconds
+
+    DeploymentDetail:
+      allOf:
+        - $ref: '#/components/schemas/Deployment'
+        - type: object
+          properties:
+            logs:
+              type: array
+              items:
+                $ref: '#/components/schemas/DeploymentLog'
+            steps:
+              type: array
+              items:
+                $ref: '#/components/schemas/DeploymentStep'
+
+    DeploymentStatus:
+      type: string
+      enum:
+        - pending
+        - running
+        - succeeded
+        - failed
+        - cancelled
+        - timeout
+      description: Current status of the deployment
+
+    DeploymentRequest:
+      type: object
+      required:
+        - environment
+      properties:
+        environment:
+          type: string
+          enum: [development, staging, production]
+          description: Target environment
+        version:
+          type: string
+          description: Version to deploy
+        commitHash:
+          type: string
+          description: Git commit hash to deploy
+
+    DeploymentLog:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        level:
+          type: string
+          enum: [debug, info, warn, error]
+        message:
+          type: string
+        source:
+          type: string
+
+    DeploymentStep:
+      type: object
+      properties:
+        name:
+          type: string
+        status:
+          type: string
+          enum: [pending, running, succeeded, failed, skipped]
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+        duration:
+          type: integer
+        output:
+          type: string
+
+    ProjectAnalytics:
+      type: object
+      properties:
+        deploymentCount:
+          type: integer
+          description: Total number of deployments
+        successRate:
+          type: number
+          format: float
+          description: Deployment success rate (0-1)
+        averageDeploymentTime:
+          type: number
+          format: float
+          description: Average deployment time in seconds
+        lastDeployment:
+          type: string
+          format: date-time
+          description: Timestamp of last deployment
+
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, unhealthy, degraded]
+        timestamp:
+          type: string
+          format: date-time
+        checks:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              status:
+                type: string
+                enum: [pass, fail, warn]
+              details:
+                type: string
+
+    Pagination:
+      type: object
+      properties:
+        limit:
+          type: integer
+          description: Maximum number of items per page
+        offset:
+          type: integer
+          description: Number of items skipped
+        total:
+          type: integer
+          description: Total number of items
+        hasMore:
+          type: boolean
+          description: Whether there are more items
+
+    Meta:
+      type: object
+      properties:
+        requestId:
+          type: string
+          description: Unique identifier for the request
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp of the response
+        version:
+          type: string
+          description: API version
+
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: Error code
+        message:
+          type: string
+          description: Error message
+        details:
+          type: object
+          description: Additional error details
+        field:
+          type: string
+          description: Field that caused the error (for validation errors)
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                $ref: '#/components/schemas/Error'
+              meta:
+                $ref: '#/components/schemas/Meta'
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                $ref: '#/components/schemas/Error'
+              meta:
+                $ref: '#/components/schemas/Meta'
+
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                $ref: '#/components/schemas/Error'
+              meta:
+                $ref: '#/components/schemas/Meta'
+
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                $ref: '#/components/schemas/Error'
+              meta:
+                $ref: '#/components/schemas/Meta'
+
+    Conflict:
+      description: Conflict
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                $ref: '#/components/schemas/Error'
+              meta:
+                $ref: '#/components/schemas/Meta'
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                $ref: '#/components/schemas/Error'
+              meta:
+                $ref: '#/components/schemas/Meta'
+
+tags:
+  - name: Projects
+    description: Project management operations
+  - name: Deployments
+    description: Deployment management operations
+  - name: Health
+    description: Health check operations
