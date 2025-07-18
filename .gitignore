@@ -294,3 +294,5 @@ logs/
 # Claude Code specific
 .claude/claude_history.jsonl
 .claude/claude_workspace.json
+
+temp/

@@ -4,8 +4,9 @@ import argparse
 import os
 import random
 import tempfile
-from piper import PiperVoice
-from markdown_it import MarkdownIt
+import markdown
+import re
+import subprocess
 
 def main():
     """
@@ -26,11 +27,9 @@ def main():
     # --- Markdown to Text ---
     with open(args.markdown_file, "r", encoding="utf-8") as f:
         md_content = f.read()
-    md = MarkdownIt()
-    text_content = md.render(md_content)
-    print("--- Extracted Text ---")
-    print(text_content)
-    print("----------------------")
+    html = markdown.markdown(md_content)
+    text_content = re.sub(r'<[^>]+>', '', html)
+    
 
     # --- Voice Selection ---
     voices_dir = os.path.expanduser("~/.piper/voices")
@@ -63,16 +62,20 @@ def main():
     if not voice_model_path:
         print(f"Error: No .onnx model found for voice '{selected_voice_name}'")
         return
-    
-    try:
-        voice = PiperVoice.load(voice_model_path)
-    except Exception as e:
-        print(f"Error loading voice: {e}")
-        return
 
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False, dir="./temp") as wav_file:
+        piper_executable = ".venv/bin/piper"
+        command = [
+            piper_executable,
+            "--model",
+            voice_model_path,
+            "--output_file",
+            wav_file.name,
+        ]
+
         print(f"Synthesizing speech to '{wav_file.name}'...")
-        voice.synthesize(text_content, wav_file)
+        subprocess.run(command, input=text_content.encode("utf-8"))
+
         # Check if the file is empty
         if os.path.getsize(wav_file.name) == 0:
             print("Warning: The output audio file is empty. This may indicate an issue with the voice model or the input text.")
