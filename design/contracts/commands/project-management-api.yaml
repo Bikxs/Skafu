@@ -1,0 +1,1175 @@
+openapi: 3.0.3
+info:
+  title: Project Management API
+  description: |
+    REST API for project and service management commands in the Skafu scaffolding application.
+    All endpoints require authentication via JWT bearer token from AWS Cognito.
+  version: 1.0.0
+  contact:
+    name: Skafu Development Team
+    email: dev@skafu.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.skafu.com/v1
+    description: Production server
+  - url: https://staging-api.skafu.com/v1
+    description: Staging server
+  - url: http://localhost:3000/v1
+    description: Local development server
+
+security:
+  - CognitoJWT: []
+
+paths:
+  /projects:
+    get:
+      summary: List projects
+      description: Retrieve a paginated list of projects for the authenticated user
+      operationId: listProjects
+      tags:
+        - Projects
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of projects to return
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          description: Number of projects to skip for pagination
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: status
+          in: query
+          description: Filter projects by status
+          required: false
+          schema:
+            type: string
+            enum: [DRAFT, ACTIVE, ARCHIVED]
+        - name: search
+          in: query
+          description: Search projects by name or description
+          required: false
+          schema:
+            type: string
+            maxLength: 100
+      responses:
+        '200':
+          description: Successfully retrieved projects
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      summary: Create project
+      description: Create a new scaffolded project
+      operationId: createProject
+      tags:
+        - Projects
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProjectRequest'
+            examples:
+              ecommerce-platform:
+                summary: E-commerce platform project
+                value:
+                  name: "E-commerce Platform"
+                  description: "Modern microservices e-commerce platform with payment integration"
+                  templateId: "550e8400-e29b-41d4-a716-446655440005"
+                  configuration:
+                    framework: "sam"
+                    runtime: "python3.9"
+                    region: "us-east-1"
+                    environment: "development"
+                    tags:
+                      project-type: "ecommerce"
+                      team: "backend"
+      responses:
+        '202':
+          description: Project creation initiated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /projects/{projectId}:
+    get:
+      summary: Get project details
+      description: Retrieve detailed information about a specific project
+      operationId: getProject
+      tags:
+        - Projects
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      responses:
+        '200':
+          description: Project details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectDetailResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    put:
+      summary: Update project
+      description: Update project metadata and configuration
+      operationId: updateProject
+      tags:
+        - Projects
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProjectRequest'
+      responses:
+        '202':
+          description: Project update initiated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    delete:
+      summary: Delete project
+      description: Soft delete a project and all its associated resources
+      operationId: deleteProject
+      tags:
+        - Projects
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeleteProjectRequest'
+      responses:
+        '202':
+          description: Project deletion initiated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /projects/{projectId}/services:
+    get:
+      summary: List project services
+      description: Retrieve all services within a project
+      operationId: listProjectServices
+      tags:
+        - Services
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - name: type
+          in: query
+          description: Filter services by type
+          required: false
+          schema:
+            type: string
+            enum: [API, WORKER, FRONTEND, DATABASE]
+      responses:
+        '200':
+          description: Services retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceListResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      summary: Add service to project
+      description: Add a new microservice to an existing project
+      operationId: addService
+      tags:
+        - Services
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddServiceRequest'
+            examples:
+              user-service:
+                summary: User management service
+                value:
+                  name: "user-service"
+                  type: "API"
+                  description: "User authentication and profile management"
+                  templateId: "550e8400-e29b-41d4-a716-446655440013"
+                  configuration:
+                    memorySize: 512
+                    timeout: 30
+                    environmentVariables:
+                      LOG_LEVEL: "INFO"
+                  endpoints:
+                    - path: "/api/users"
+                      method: "GET"
+                      description: "List users"
+                      authentication: true
+                    - path: "/api/users"
+                      method: "POST"
+                      description: "Create user"
+                      authentication: true
+      responses:
+        '202':
+          description: Service addition initiated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /projects/{projectId}/services/{serviceId}:
+    get:
+      summary: Get service details
+      description: Retrieve detailed information about a specific service
+      operationId: getService
+      tags:
+        - Services
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - $ref: '#/components/parameters/ServiceId'
+      responses:
+        '200':
+          description: Service details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceDetailResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    put:
+      summary: Update service
+      description: Update service configuration and metadata
+      operationId: updateService
+      tags:
+        - Services
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - $ref: '#/components/parameters/ServiceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateServiceRequest'
+      responses:
+        '202':
+          description: Service update initiated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    delete:
+      summary: Remove service
+      description: Remove a service from the project
+      operationId: removeService
+      tags:
+        - Services
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - $ref: '#/components/parameters/ServiceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RemoveServiceRequest'
+      responses:
+        '202':
+          description: Service removal initiated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /projects/{projectId}/relationships:
+    get:
+      summary: List service relationships
+      description: Retrieve all service relationships within a project
+      operationId: listServiceRelationships
+      tags:
+        - Relationships
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      responses:
+        '200':
+          description: Relationships retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RelationshipListResponse'
+
+    post:
+      summary: Establish service relationship
+      description: Create a dependency relationship between two services
+      operationId: establishServiceRelationship
+      tags:
+        - Relationships
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EstablishRelationshipRequest'
+      responses:
+        '202':
+          description: Relationship establishment initiated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /projects/{projectId}/relationships/{relationshipId}:
+    delete:
+      summary: Remove service relationship
+      description: Remove a dependency relationship between services
+      operationId: removeServiceRelationship
+      tags:
+        - Relationships
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - $ref: '#/components/parameters/RelationshipId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RemoveRelationshipRequest'
+      responses:
+        '202':
+          description: Relationship removal initiated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandResponse'
+
+components:
+  securitySchemes:
+    CognitoJWT:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token from AWS Cognito User Pool
+
+  parameters:
+    ProjectId:
+      name: projectId
+      in: path
+      required: true
+      description: Unique identifier for the project
+      schema:
+        type: string
+        format: uuid
+
+    ServiceId:
+      name: serviceId
+      in: path
+      required: true
+      description: Unique identifier for the service
+      schema:
+        type: string
+        format: uuid
+
+    RelationshipId:
+      name: relationshipId
+      in: path
+      required: true
+      description: Unique identifier for the relationship
+      schema:
+        type: string
+        format: uuid
+
+    CorrelationId:
+      name: X-Correlation-ID
+      in: header
+      required: false
+      description: Correlation ID for request tracing
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    # Request schemas
+    CreateProjectRequest:
+      type: object
+      required:
+        - name
+        - description
+        - templateId
+        - configuration
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          pattern: '^[a-zA-Z0-9\s\-_]+$'
+          description: Project name (alphanumeric, spaces, hyphens, underscores)
+        description:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: Project description
+        templateId:
+          type: string
+          format: uuid
+          description: Template to use for project creation
+        configuration:
+          $ref: '#/components/schemas/ProjectConfiguration'
+      additionalProperties: false
+
+    UpdateProjectRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          pattern: '^[a-zA-Z0-9\s\-_]+$'
+        description:
+          type: string
+          minLength: 1
+          maxLength: 500
+        configuration:
+          $ref: '#/components/schemas/ProjectConfiguration'
+      additionalProperties: false
+
+    DeleteProjectRequest:
+      type: object
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Reason for deleting the project
+        retentionDays:
+          type: integer
+          minimum: 1
+          maximum: 365
+          default: 30
+          description: Days to retain project data before permanent deletion
+      additionalProperties: false
+
+    AddServiceRequest:
+      type: object
+      required:
+        - name
+        - type
+        - description
+        - templateId
+      properties:
+        name:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+          minLength: 1
+          maxLength: 50
+          description: Service name in kebab-case
+        type:
+          type: string
+          enum: [API, WORKER, FRONTEND, DATABASE]
+          description: Type of service
+        description:
+          type: string
+          minLength: 1
+          maxLength: 300
+          description: Service description
+        templateId:
+          type: string
+          format: uuid
+          description: Service template to use
+        configuration:
+          $ref: '#/components/schemas/ServiceConfiguration'
+        endpoints:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceEndpoint'
+          description: API endpoints for this service
+      additionalProperties: false
+
+    UpdateServiceRequest:
+      type: object
+      properties:
+        description:
+          type: string
+          minLength: 1
+          maxLength: 300
+        configuration:
+          $ref: '#/components/schemas/ServiceConfiguration'
+        endpoints:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceEndpoint'
+      additionalProperties: false
+
+    RemoveServiceRequest:
+      type: object
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Reason for removing the service
+        force:
+          type: boolean
+          default: false
+          description: Force removal even if service has dependents
+      additionalProperties: false
+
+    EstablishRelationshipRequest:
+      type: object
+      required:
+        - sourceServiceId
+        - targetServiceId
+        - type
+      properties:
+        sourceServiceId:
+          type: string
+          format: uuid
+          description: Service that depends on the target
+        targetServiceId:
+          type: string
+          format: uuid
+          description: Service being depended upon
+        type:
+          type: string
+          enum: [SYNC_API, ASYNC_EVENT, DATA_DEPENDENCY]
+          description: Type of relationship
+        configuration:
+          type: object
+          description: Relationship-specific configuration
+          additionalProperties: true
+      additionalProperties: false
+
+    RemoveRelationshipRequest:
+      type: object
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Reason for removing the relationship
+      additionalProperties: false
+
+    # Response schemas
+    CommandResponse:
+      type: object
+      required:
+        - status
+        - message
+        - correlationId
+      properties:
+        status:
+          type: string
+          enum: [accepted, processing, completed, failed]
+          description: Command processing status
+        message:
+          type: string
+          description: Human-readable status message
+        correlationId:
+          type: string
+          format: uuid
+          description: Correlation ID for tracking this request
+        resourceId:
+          type: string
+          format: uuid
+          description: ID of the created/modified resource
+        estimatedCompletionTime:
+          type: string
+          format: date-time
+          description: Estimated completion time for async operations
+
+    ProjectListResponse:
+      type: object
+      required:
+        - projects
+        - pagination
+      properties:
+        projects:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectSummary'
+        pagination:
+          $ref: '#/components/schemas/PaginationInfo'
+
+    ProjectSummary:
+      type: object
+      required:
+        - projectId
+        - name
+        - description
+        - status
+        - serviceCount
+        - createdAt
+        - updatedAt
+      properties:
+        projectId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [DRAFT, ACTIVE, ARCHIVED, DELETED]
+        serviceCount:
+          type: integer
+          minimum: 0
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ProjectDetailResponse:
+      type: object
+      required:
+        - project
+        - services
+        - relationships
+      properties:
+        project:
+          $ref: '#/components/schemas/ProjectDetail'
+        services:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceSummary'
+        relationships:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceRelationship'
+
+    ProjectDetail:
+      type: object
+      required:
+        - projectId
+        - name
+        - description
+        - ownerId
+        - status
+        - templateId
+        - configuration
+        - createdAt
+        - updatedAt
+      properties:
+        projectId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        ownerId:
+          type: string
+          format: uuid
+        organizationId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [DRAFT, ACTIVE, ARCHIVED, DELETED]
+        templateId:
+          type: string
+          format: uuid
+        configuration:
+          $ref: '#/components/schemas/ProjectConfiguration'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ServiceListResponse:
+      type: object
+      required:
+        - services
+      properties:
+        services:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceSummary'
+
+    ServiceSummary:
+      type: object
+      required:
+        - serviceId
+        - name
+        - type
+        - description
+        - status
+        - createdAt
+        - updatedAt
+      properties:
+        serviceId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        type:
+          type: string
+          enum: [API, WORKER, FRONTEND, DATABASE]
+        description:
+          type: string
+        status:
+          type: string
+          enum: [PLANNED, ACTIVE, INACTIVE, DEPRECATED]
+        templateId:
+          type: string
+          format: uuid
+        dependencyCount:
+          type: integer
+          minimum: 0
+        dependentCount:
+          type: integer
+          minimum: 0
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ServiceDetailResponse:
+      type: object
+      required:
+        - service
+      properties:
+        service:
+          $ref: '#/components/schemas/ServiceDetail'
+
+    ServiceDetail:
+      allOf:
+        - $ref: '#/components/schemas/ServiceSummary'
+        - type: object
+          properties:
+            projectId:
+              type: string
+              format: uuid
+            configuration:
+              $ref: '#/components/schemas/ServiceConfiguration'
+            endpoints:
+              type: array
+              items:
+                $ref: '#/components/schemas/ServiceEndpoint'
+            dependencies:
+              type: array
+              items:
+                type: string
+                format: uuid
+            dependents:
+              type: array
+              items:
+                type: string
+                format: uuid
+
+    RelationshipListResponse:
+      type: object
+      required:
+        - relationships
+      properties:
+        relationships:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceRelationship'
+
+    ServiceRelationship:
+      type: object
+      required:
+        - relationshipId
+        - sourceServiceId
+        - targetServiceId
+        - type
+        - createdAt
+      properties:
+        relationshipId:
+          type: string
+          format: uuid
+        sourceServiceId:
+          type: string
+          format: uuid
+        targetServiceId:
+          type: string
+          format: uuid
+        sourceServiceName:
+          type: string
+        targetServiceName:
+          type: string
+        type:
+          type: string
+          enum: [SYNC_API, ASYNC_EVENT, DATA_DEPENDENCY]
+        configuration:
+          type: object
+          additionalProperties: true
+        createdAt:
+          type: string
+          format: date-time
+
+    # Configuration schemas
+    ProjectConfiguration:
+      type: object
+      required:
+        - framework
+        - runtime
+        - region
+        - environment
+      properties:
+        framework:
+          type: string
+          enum: [sam, cdk, terraform]
+          description: Infrastructure framework
+        runtime:
+          type: string
+          enum: [python3.9, python3.10, nodejs18, nodejs20, java11, java17]
+          description: Default runtime for services
+        region:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+          description: AWS region
+        environment:
+          type: string
+          enum: [development, staging, production]
+          description: Environment type
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+          description: Resource tags
+        cicdEnabled:
+          type: boolean
+          default: true
+          description: Enable CI/CD pipeline
+        monitoringEnabled:
+          type: boolean
+          default: true
+          description: Enable monitoring and alerting
+        loggingLevel:
+          type: string
+          enum: [DEBUG, INFO, WARN, ERROR]
+          default: INFO
+          description: Default logging level
+
+    ServiceConfiguration:
+      type: object
+      properties:
+        runtime:
+          type: string
+          enum: [python3.9, python3.10, nodejs18, nodejs20, java11, java17]
+          description: Override project runtime
+        memorySize:
+          type: integer
+          minimum: 128
+          maximum: 10240
+          description: Lambda memory allocation in MB
+        timeout:
+          type: integer
+          minimum: 1
+          maximum: 900
+          description: Lambda timeout in seconds
+        environmentVariables:
+          type: object
+          additionalProperties:
+            type: string
+          description: Environment variables
+        scaling:
+          $ref: '#/components/schemas/ScalingConfiguration'
+
+    ServiceEndpoint:
+      type: object
+      required:
+        - path
+        - method
+      properties:
+        path:
+          type: string
+          pattern: '^/.*'
+          description: API endpoint path
+        method:
+          type: string
+          enum: [GET, POST, PUT, DELETE, PATCH]
+          description: HTTP method
+        description:
+          type: string
+          description: Endpoint description
+        authentication:
+          type: boolean
+          default: true
+          description: Require authentication
+        rateLimit:
+          $ref: '#/components/schemas/RateLimitConfiguration'
+
+    ScalingConfiguration:
+      type: object
+      properties:
+        minConcurrency:
+          type: integer
+          minimum: 0
+          default: 0
+          description: Minimum concurrent executions
+        maxConcurrency:
+          type: integer
+          minimum: 1
+          maximum: 1000
+          default: 1000
+          description: Maximum concurrent executions
+        targetUtilization:
+          type: number
+          minimum: 0.1
+          maximum: 1.0
+          default: 0.7
+          description: Target utilization for scaling
+
+    RateLimitConfiguration:
+      type: object
+      properties:
+        requestsPerSecond:
+          type: integer
+          minimum: 1
+          description: Requests per second limit
+        burstLimit:
+          type: integer
+          minimum: 1
+          description: Burst request limit
+
+    PaginationInfo:
+      type: object
+      required:
+        - total
+        - limit
+        - offset
+      properties:
+        total:
+          type: integer
+          minimum: 0
+          description: Total number of items
+        limit:
+          type: integer
+          minimum: 1
+          description: Items per page
+        offset:
+          type: integer
+          minimum: 0
+          description: Number of items skipped
+        hasNext:
+          type: boolean
+          description: Whether there are more items
+        hasPrevious:
+          type: boolean
+          description: Whether there are previous items
+
+    # Error schemas
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+        - correlationId
+      properties:
+        error:
+          type: string
+          description: Error code
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: array
+          items:
+            $ref: '#/components/schemas/ErrorDetail'
+          description: Detailed error information
+        correlationId:
+          type: string
+          format: uuid
+          description: Correlation ID for this request
+
+    ErrorDetail:
+      type: object
+      required:
+        - field
+        - code
+        - message
+      properties:
+        field:
+          type: string
+          description: Field that caused the error
+        code:
+          type: string
+          description: Specific error code
+        message:
+          type: string
+          description: Field-specific error message
+
+  responses:
+    BadRequest:
+      description: Bad request - validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "ValidationError"
+            message: "Request validation failed"
+            details:
+              - field: "name"
+                code: "PATTERN_MISMATCH"
+                message: "Name contains invalid characters"
+            correlationId: "550e8400-e29b-41d4-a716-446655440000"
+
+    Unauthorized:
+      description: Unauthorized - invalid or missing authentication
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "Unauthorized"
+            message: "Invalid or missing authentication token"
+            correlationId: "550e8400-e29b-41d4-a716-446655440000"
+
+    Forbidden:
+      description: Forbidden - insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "Forbidden"
+            message: "Insufficient permissions to access this resource"
+            correlationId: "550e8400-e29b-41d4-a716-446655440000"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "NotFound"
+            message: "The requested resource was not found"
+            correlationId: "550e8400-e29b-41d4-a716-446655440000"
+
+    Conflict:
+      description: Conflict - resource already exists or business rule violation
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "ProjectNameExists"
+            message: "A project with this name already exists"
+            correlationId: "550e8400-e29b-41d4-a716-446655440000"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "InternalServerError"
+            message: "An unexpected error occurred"
+            correlationId: "550e8400-e29b-41d4-a716-446655440000"

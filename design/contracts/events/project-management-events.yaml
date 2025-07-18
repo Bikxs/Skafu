@@ -1,0 +1,694 @@
+asyncapi: '2.6.0'
+info:
+  title: Project Management Domain Events
+  version: '1.0.0'
+  description: |
+    Events published by the Project Management domain for project lifecycle, 
+    service management, and configuration changes.
+  contact:
+    name: Skafu Development Team
+    email: dev@skafu.com
+
+servers:
+  production:
+    url: '{eventBridgeBusArn}'
+    protocol: eventbridge
+    description: AWS EventBridge production bus
+    variables:
+      eventBridgeBusArn:
+        description: EventBridge custom bus ARN
+        default: 'arn:aws:events:us-east-1:123456789012:event-bus/skafu-main-bus'
+
+channels:
+  project.lifecycle:
+    description: Project lifecycle events
+    publish:
+      summary: Events related to project creation, updates, and deletion
+      operationId: publishProjectLifecycleEvents
+      message:
+        oneOf:
+          - $ref: '#/components/messages/ProjectCreated'
+          - $ref: '#/components/messages/ProjectUpdated'
+          - $ref: '#/components/messages/ProjectDeleted'
+          - $ref: '#/components/messages/ProjectStatusChanged'
+
+  service.management:
+    description: Service management events within projects
+    publish:
+      summary: Events for service additions, removals, and updates
+      operationId: publishServiceManagementEvents
+      message:
+        oneOf:
+          - $ref: '#/components/messages/ServiceAdded'
+          - $ref: '#/components/messages/ServiceRemoved'
+          - $ref: '#/components/messages/ServiceUpdated'
+          - $ref: '#/components/messages/ServiceRelationshipEstablished'
+          - $ref: '#/components/messages/ServiceRelationshipRemoved'
+
+  configuration.changes:
+    description: Configuration change events
+    publish:
+      summary: Events for project and service configuration updates
+      operationId: publishConfigurationEvents
+      message:
+        oneOf:
+          - $ref: '#/components/messages/ProjectConfigurationUpdated'
+          - $ref: '#/components/messages/ServiceConfigurationUpdated'
+
+components:
+  messages:
+    ProjectCreated:
+      name: ProjectCreated
+      title: Project Created Event
+      summary: Published when a new project is successfully created
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/ProjectCreatedPayload'
+      examples:
+        - name: E-commerce project creation
+          summary: Example of creating an e-commerce platform project
+          payload:
+            eventId: '550e8400-e29b-41d4-a716-446655440001'
+            correlationId: '550e8400-e29b-41d4-a716-446655440002'
+            timestamp: '2025-01-18T10:30:00Z'
+            version: '1.0'
+            source: 'project-management'
+            eventType: 'ProjectCreated'
+            data:
+              projectId: '550e8400-e29b-41d4-a716-446655440003'
+              name: 'E-commerce Platform'
+              description: 'Modern microservices e-commerce platform'
+              ownerId: '550e8400-e29b-41d4-a716-446655440004'
+              templateId: '550e8400-e29b-41d4-a716-446655440005'
+              status: 'DRAFT'
+              configuration:
+                framework: 'sam'
+                runtime: 'python3.9'
+                region: 'us-east-1'
+                environment: 'development'
+            metadata:
+              userId: '550e8400-e29b-41d4-a716-446655440004'
+              userAgent: 'Skafu-Web-App/1.0'
+              requestId: 'req-12345'
+
+    ProjectUpdated:
+      name: ProjectUpdated
+      title: Project Updated Event
+      summary: Published when project metadata or configuration is updated
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/ProjectUpdatedPayload'
+
+    ProjectDeleted:
+      name: ProjectDeleted
+      title: Project Deleted Event
+      summary: Published when a project is soft-deleted
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/ProjectDeletedPayload'
+
+    ServiceAdded:
+      name: ServiceAdded
+      title: Service Added Event
+      summary: Published when a new service is added to a project
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/ServiceAddedPayload'
+      examples:
+        - name: User service addition
+          summary: Adding a user management service to a project
+          payload:
+            eventId: '550e8400-e29b-41d4-a716-446655440010'
+            correlationId: '550e8400-e29b-41d4-a716-446655440011'
+            timestamp: '2025-01-18T11:00:00Z'
+            version: '1.0'
+            source: 'project-management'
+            eventType: 'ServiceAdded'
+            data:
+              projectId: '550e8400-e29b-41d4-a716-446655440003'
+              serviceId: '550e8400-e29b-41d4-a716-446655440012'
+              name: 'user-service'
+              type: 'API'
+              description: 'User authentication and management service'
+              templateId: '550e8400-e29b-41d4-a716-446655440013'
+              configuration:
+                runtime: 'python3.9'
+                memorySize: 512
+                timeout: 30
+
+    ServiceRemoved:
+      name: ServiceRemoved
+      title: Service Removed Event
+      summary: Published when a service is removed from a project
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/ServiceRemovedPayload'
+
+    ServiceUpdated:
+      name: ServiceUpdated
+      title: Service Updated Event
+      summary: Published when service configuration or metadata is updated
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/ServiceUpdatedPayload'
+
+    ServiceRelationshipEstablished:
+      name: ServiceRelationshipEstablished
+      title: Service Relationship Established Event
+      summary: Published when a dependency relationship is created between services
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/ServiceRelationshipEstablishedPayload'
+
+    ServiceRelationshipRemoved:
+      name: ServiceRelationshipRemoved
+      title: Service Relationship Removed Event
+      summary: Published when a dependency relationship is removed
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/ServiceRelationshipRemovedPayload'
+
+    ProjectConfigurationUpdated:
+      name: ProjectConfigurationUpdated
+      title: Project Configuration Updated Event
+      summary: Published when project-level configuration is modified
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/ProjectConfigurationUpdatedPayload'
+
+    ServiceConfigurationUpdated:
+      name: ServiceConfigurationUpdated
+      title: Service Configuration Updated Event
+      summary: Published when service-specific configuration is modified
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/ServiceConfigurationUpdatedPayload'
+
+  schemas:
+    # Base event structure
+    BaseEventPayload:
+      type: object
+      required:
+        - eventId
+        - correlationId
+        - timestamp
+        - version
+        - source
+        - eventType
+        - data
+        - metadata
+      properties:
+        eventId:
+          type: string
+          format: uuid
+          description: Unique identifier for this event
+        correlationId:
+          type: string
+          format: uuid
+          description: Correlation ID for tracking related events
+        timestamp:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp when event was created
+        version:
+          type: string
+          pattern: '^\\d+\\.\\d+$'
+          description: Event schema version
+        source:
+          type: string
+          enum: ['project-management']
+          description: Domain that published this event
+        eventType:
+          type: string
+          description: Specific type of event
+        metadata:
+          $ref: '#/components/schemas/EventMetadata'
+
+    EventMetadata:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+          description: ID of user who triggered the event
+        userAgent:
+          type: string
+          description: User agent string from the request
+        requestId:
+          type: string
+          description: Original API request ID
+        sessionId:
+          type: string
+          description: User session identifier
+
+    # Project event payloads
+    ProjectCreatedPayload:
+      allOf:
+        - $ref: '#/components/schemas/BaseEventPayload'
+        - type: object
+          properties:
+            eventType:
+              type: string
+              const: 'ProjectCreated'
+            data:
+              $ref: '#/components/schemas/ProjectCreatedData'
+
+    ProjectCreatedData:
+      type: object
+      required:
+        - projectId
+        - name
+        - description
+        - ownerId
+        - templateId
+        - status
+        - configuration
+      properties:
+        projectId:
+          type: string
+          format: uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 500
+        ownerId:
+          type: string
+          format: uuid
+        organizationId:
+          type: string
+          format: uuid
+          description: Optional organization identifier
+        templateId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: ['DRAFT', 'ACTIVE', 'ARCHIVED', 'DELETED']
+        configuration:
+          $ref: '#/components/schemas/ProjectConfiguration'
+
+    ProjectUpdatedPayload:
+      allOf:
+        - $ref: '#/components/schemas/BaseEventPayload'
+        - type: object
+          properties:
+            eventType:
+              type: string
+              const: 'ProjectUpdated'
+            data:
+              $ref: '#/components/schemas/ProjectUpdatedData'
+
+    ProjectUpdatedData:
+      type: object
+      required:
+        - projectId
+        - changes
+      properties:
+        projectId:
+          type: string
+          format: uuid
+        changes:
+          type: object
+          description: Fields that were changed and their new values
+        previousValues:
+          type: object
+          description: Previous values of changed fields
+
+    ProjectDeletedPayload:
+      allOf:
+        - $ref: '#/components/schemas/BaseEventPayload'
+        - type: object
+          properties:
+            eventType:
+              type: string
+              const: 'ProjectDeleted'
+            data:
+              $ref: '#/components/schemas/ProjectDeletedData'
+
+    ProjectDeletedData:
+      type: object
+      required:
+        - projectId
+        - reason
+      properties:
+        projectId:
+          type: string
+          format: uuid
+        reason:
+          type: string
+          description: Reason for deletion
+        retentionPeriod:
+          type: integer
+          description: Days before permanent deletion
+
+    # Service event payloads
+    ServiceAddedPayload:
+      allOf:
+        - $ref: '#/components/schemas/BaseEventPayload'
+        - type: object
+          properties:
+            eventType:
+              type: string
+              const: 'ServiceAdded'
+            data:
+              $ref: '#/components/schemas/ServiceAddedData'
+
+    ServiceAddedData:
+      type: object
+      required:
+        - projectId
+        - serviceId
+        - name
+        - type
+        - description
+        - templateId
+        - configuration
+      properties:
+        projectId:
+          type: string
+          format: uuid
+        serviceId:
+          type: string
+          format: uuid
+        name:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+          minLength: 1
+          maxLength: 50
+          description: Kebab-case service name
+        type:
+          type: string
+          enum: ['API', 'WORKER', 'FRONTEND', 'DATABASE']
+        description:
+          type: string
+          maxLength: 300
+        templateId:
+          type: string
+          format: uuid
+        configuration:
+          $ref: '#/components/schemas/ServiceConfiguration'
+        endpoints:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceEndpoint'
+
+    ServiceRemovedPayload:
+      allOf:
+        - $ref: '#/components/schemas/BaseEventPayload'
+        - type: object
+          properties:
+            eventType:
+              type: string
+              const: 'ServiceRemoved'
+            data:
+              $ref: '#/components/schemas/ServiceRemovedData'
+
+    ServiceRemovedData:
+      type: object
+      required:
+        - projectId
+        - serviceId
+        - serviceName
+        - reason
+      properties:
+        projectId:
+          type: string
+          format: uuid
+        serviceId:
+          type: string
+          format: uuid
+        serviceName:
+          type: string
+        reason:
+          type: string
+          description: Reason for service removal
+
+    ServiceUpdatedPayload:
+      allOf:
+        - $ref: '#/components/schemas/BaseEventPayload'
+        - type: object
+          properties:
+            eventType:
+              type: string
+              const: 'ServiceUpdated'
+            data:
+              $ref: '#/components/schemas/ServiceUpdatedData'
+
+    ServiceUpdatedData:
+      type: object
+      required:
+        - projectId
+        - serviceId
+        - changes
+      properties:
+        projectId:
+          type: string
+          format: uuid
+        serviceId:
+          type: string
+          format: uuid
+        changes:
+          type: object
+          description: Fields that were changed
+        previousValues:
+          type: object
+          description: Previous values
+
+    ServiceRelationshipEstablishedPayload:
+      allOf:
+        - $ref: '#/components/schemas/BaseEventPayload'
+        - type: object
+          properties:
+            eventType:
+              type: string
+              const: 'ServiceRelationshipEstablished'
+            data:
+              $ref: '#/components/schemas/ServiceRelationshipEstablishedData'
+
+    ServiceRelationshipEstablishedData:
+      type: object
+      required:
+        - projectId
+        - relationshipId
+        - sourceServiceId
+        - targetServiceId
+        - type
+      properties:
+        projectId:
+          type: string
+          format: uuid
+        relationshipId:
+          type: string
+          format: uuid
+        sourceServiceId:
+          type: string
+          format: uuid
+        targetServiceId:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: ['SYNC_API', 'ASYNC_EVENT', 'DATA_DEPENDENCY']
+        configuration:
+          type: object
+          description: Relationship-specific configuration
+
+    ServiceRelationshipRemovedPayload:
+      allOf:
+        - $ref: '#/components/schemas/BaseEventPayload'
+        - type: object
+          properties:
+            eventType:
+              type: string
+              const: 'ServiceRelationshipRemoved'
+            data:
+              $ref: '#/components/schemas/ServiceRelationshipRemovedData'
+
+    ServiceRelationshipRemovedData:
+      type: object
+      required:
+        - projectId
+        - relationshipId
+        - sourceServiceId
+        - targetServiceId
+      properties:
+        projectId:
+          type: string
+          format: uuid
+        relationshipId:
+          type: string
+          format: uuid
+        sourceServiceId:
+          type: string
+          format: uuid
+        targetServiceId:
+          type: string
+          format: uuid
+        reason:
+          type: string
+
+    # Configuration event payloads
+    ProjectConfigurationUpdatedPayload:
+      allOf:
+        - $ref: '#/components/schemas/BaseEventPayload'
+        - type: object
+          properties:
+            eventType:
+              type: string
+              const: 'ProjectConfigurationUpdated'
+            data:
+              $ref: '#/components/schemas/ProjectConfigurationUpdatedData'
+
+    ProjectConfigurationUpdatedData:
+      type: object
+      required:
+        - projectId
+        - configuration
+        - previousConfiguration
+      properties:
+        projectId:
+          type: string
+          format: uuid
+        configuration:
+          $ref: '#/components/schemas/ProjectConfiguration'
+        previousConfiguration:
+          $ref: '#/components/schemas/ProjectConfiguration'
+
+    ServiceConfigurationUpdatedPayload:
+      allOf:
+        - $ref: '#/components/schemas/BaseEventPayload'
+        - type: object
+          properties:
+            eventType:
+              type: string
+              const: 'ServiceConfigurationUpdated'
+            data:
+              $ref: '#/components/schemas/ServiceConfigurationUpdatedData'
+
+    ServiceConfigurationUpdatedData:
+      type: object
+      required:
+        - projectId
+        - serviceId
+        - configuration
+        - previousConfiguration
+      properties:
+        projectId:
+          type: string
+          format: uuid
+        serviceId:
+          type: string
+          format: uuid
+        configuration:
+          $ref: '#/components/schemas/ServiceConfiguration'
+        previousConfiguration:
+          $ref: '#/components/schemas/ServiceConfiguration'
+
+    # Configuration schemas
+    ProjectConfiguration:
+      type: object
+      required:
+        - framework
+        - runtime
+        - region
+        - environment
+      properties:
+        framework:
+          type: string
+          enum: ['sam', 'cdk', 'terraform']
+        runtime:
+          type: string
+          enum: ['python3.9', 'python3.10', 'nodejs18', 'nodejs20', 'java11', 'java17']
+        region:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+        environment:
+          type: string
+          enum: ['development', 'staging', 'production']
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+        cicdEnabled:
+          type: boolean
+          default: true
+        monitoringEnabled:
+          type: boolean
+          default: true
+        loggingLevel:
+          type: string
+          enum: ['DEBUG', 'INFO', 'WARN', 'ERROR']
+          default: 'INFO'
+
+    ServiceConfiguration:
+      type: object
+      properties:
+        runtime:
+          type: string
+          description: Override project runtime
+        memorySize:
+          type: integer
+          minimum: 128
+          maximum: 10240
+          description: Lambda memory in MB
+        timeout:
+          type: integer
+          minimum: 1
+          maximum: 900
+          description: Lambda timeout in seconds
+        environmentVariables:
+          type: object
+          additionalProperties:
+            type: string
+        scaling:
+          $ref: '#/components/schemas/ScalingConfiguration'
+
+    ServiceEndpoint:
+      type: object
+      required:
+        - path
+        - method
+      properties:
+        path:
+          type: string
+          pattern: '^/.*'
+        method:
+          type: string
+          enum: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']
+        description:
+          type: string
+        authentication:
+          type: boolean
+          default: true
+        rateLimit:
+          $ref: '#/components/schemas/RateLimitConfiguration'
+
+    ScalingConfiguration:
+      type: object
+      properties:
+        minConcurrency:
+          type: integer
+          minimum: 0
+          default: 0
+        maxConcurrency:
+          type: integer
+          minimum: 1
+          default: 1000
+        targetUtilization:
+          type: number
+          minimum: 0.1
+          maximum: 1.0
+          default: 0.7
+
+    RateLimitConfiguration:
+      type: object
+      properties:
+        requestsPerSecond:
+          type: integer
+          minimum: 1
+        burstLimit:
+          type: integer
+          minimum: 1
