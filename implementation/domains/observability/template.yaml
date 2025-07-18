@@ -38,6 +38,14 @@ Parameters:
   ApiGatewayRootResourceId:
     Type: String
     Description: API Gateway V1 Resource ID from shared resources
+  
+  PowertoolsLayerArn:
+    Type: String
+    Description: ARN of the shared AWS Lambda Powertools Layer
+
+  PowertoolsLayerArn:
+    Type: String
+    Description: ARN of the shared AWS Lambda Powertools Layer
 
 Globals:
   Function:
@@ -56,27 +64,15 @@ Globals:
         USER_POOL_CLIENT_ID: !Ref UserPoolClientId
     Tracing: Active
     Layers:
-      - !Ref PowertoolsLayer
+      - !Ref PowertoolsLayerArn
     Tags:
       Environment: !Ref Environment
       Project: Skafu
       Domain: Observability
       ManagedBy: SAM
 
+
 Resources:
-  # AWS Lambda Powertools Layer
-  PowertoolsLayer:
-    Type: AWS::Serverless::LayerVersion
-    Properties:
-      LayerName: !Sub 'skafu-powertools-${Environment}'
-      Description: AWS Lambda Powertools for Python
-      ContentUri: ../../shared/layers/powertools/
-      CompatibleRuntimes:
-        - python3.12
-      RetentionPolicy: Retain
-    Metadata:
-      BuildMethod: python3.12
-  
   # API Gateway Resources
   ObservabilityResource:
     Type: AWS::ApiGateway::Resource
@@ -84,8 +80,355 @@ Resources:
       RestApiId: !Ref ApiGatewayId
       ParentId: !Ref ApiGatewayRootResourceId
       PathPart: 'observability'
+
+  MetricsResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref ApiGatewayId
+      ParentId: !GetAtt ObservabilityResource.ResourceId
+      PathPart: 'metrics'
+
+  MetricsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGatewayId
+      ResourceId: !GetAtt MetricsResource.ResourceId
+      HttpMethod: GET
+      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizerId: !Ref ApiGatewayAuthorizer
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${QueryMetricsFunction.Arn}/invocations"
+
+  MetricsPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt QueryMetricsFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayId}/*/*"
+
+  SecurityEventsResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref ApiGatewayId
+      ParentId: !GetAtt ObservabilityResource.ResourceId
+      PathPart: 'security-events'
+
+  SecurityEventsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGatewayId
+      ResourceId: !GetAtt SecurityEventsResource.ResourceId
+      HttpMethod: GET
+      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizerId: !Ref ApiGatewayAuthorizer
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${QuerySecurityEventsFunction.Arn}/invocations"
+
+  SecurityEventsPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt QuerySecurityEventsFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayId}/*/*"
+
+  TracesResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref ApiGatewayId
+      ParentId: !GetAtt ObservabilityResource.ResourceId
+      PathPart: 'traces'
+
+  TracesMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGatewayId
+      ResourceId: !GetAtt TracesResource.ResourceId
+      HttpMethod: GET
+      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizerId: !Ref ApiGatewayAuthorizer
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${QueryTracesFunction.Arn}/invocations"
+
+  TracesPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt QueryTracesFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayId}/*/*"
+
+  LogsResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref ApiGatewayId
+      ParentId: !GetAtt ObservabilityResource.ResourceId
+      PathPart: 'logs'
+
+  LogsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGatewayId
+      ResourceId: !GetAtt LogsResource.ResourceId
+      HttpMethod: GET
+      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizerId: !Ref ApiGatewayAuthorizer
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${QueryLogsFunction.Arn}/invocations"
+
+  LogsPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt QueryLogsFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayId}/*/*"
+
+  UsersResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref ApiGatewayId
+      ParentId: !GetAtt ObservabilityResource.ResourceId
+      PathPart: 'users'
+
+  UsersMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGatewayId
+      ResourceId: !GetAtt UsersResource.ResourceId
+      HttpMethod: GET
+      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizerId: !Ref ApiGatewayAuthorizer
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${QueryUsersFunction.Arn}/invocations"
+
+  UsersPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt QueryUsersFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayId}/*/*"
+
+  FinanceResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref ApiGatewayId
+      ParentId: !GetAtt ObservabilityResource.ResourceId
+      PathPart: 'finance'
+
+  FinanceCostResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref ApiGatewayId
+      ParentId: !GetAtt FinanceResource.ResourceId
+      PathPart: 'cost'
+
+  FinanceCostMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGatewayId
+      ResourceId: !GetAtt FinanceCostResource.ResourceId
+      HttpMethod: GET
+      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizerId: !Ref ApiGatewayAuthorizer
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${QueryFinanceCostFunction.Arn}/invocations"
+
+  FinanceCostPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt QueryFinanceCostFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayId}/*/*"
+
+  FinanceForecastResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref ApiGatewayId
+      ParentId: !GetAtt FinanceResource.ResourceId
+      PathPart: 'forecast'
+
+  FinanceForecastMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGatewayId
+      ResourceId: !GetAtt FinanceForecastResource.ResourceId
+      HttpMethod: GET
+      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizerId: !Ref ApiGatewayAuthorizer
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${QueryFinanceForecastFunction.Arn}/invocations"
+
+  FinanceForecastPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt QueryFinanceForecastFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayId}/*/*"
+
+  AlarmsResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref ApiGatewayId
+      ParentId: !GetAtt ObservabilityResource.ResourceId
+      PathPart: 'alarms'
+
+  AlarmsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGatewayId
+      ResourceId: !GetAtt AlarmsResource.ResourceId
+      HttpMethod: GET
+      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizerId: !Ref ApiGatewayAuthorizer
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${QueryAlarmsFunction.Arn}/invocations"
+
+  AlarmsPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt QueryAlarmsFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayId}/*/*"
+
+  ApiGatewayAuthorizer:
+    Type: AWS::ApiGateway::Authorizer
+    Properties:
+      Name: CognitoAuthorizer
+      Type: COGNITO_USER_POOLS
+      IdentitySource: method.request.header.Authorization
+      RestApiId: !Ref ApiGatewayId
+      ProviderARNs:
+        - !Ref UserPoolId
+
+# Lambda Functions
+  QueryMetricsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub 'skafu-${Environment}-observability-query-metrics'
+      CodeUri: backend/functions/query_metrics/src/
+      Handler: app.lambda_handler
+      Policies:
+        - CloudWatchReadonlyAccess
+        - EventBridgePutEventsPolicy:
+            EventBusName: !Ref ErrorBusName
+      
   
+  QuerySecurityEventsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub 'skafu-${Environment}-observability-query-security-events'
+      CodeUri: backend/functions/query_security_events/src/
+      Handler: app.lambda_handler
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:Query
+                - dynamodb:GetItem
+              Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/skafu-error-analytics-${Environment}'
+        - EventBridgePutEventsPolicy:
+            EventBusName: !Ref ErrorBusName
+      
   
+  QueryTracesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub 'skafu-${Environment}-observability-query-traces'
+      CodeUri: backend/functions/query_traces/src/
+      Handler: app.lambda_handler
+      Policies:
+        - XRayReadonlyAccess
+        - EventBridgePutEventsPolicy:
+            EventBusName: !Ref ErrorBusName
+      
   
-  # Lambda Functions
+  QueryLogsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub 'skafu-${Environment}-observability-query-logs'
+      CodeUri: backend/functions/query_logs/src/
+      Handler: app.lambda_handler
+      Policies:
+        - CloudWatchLogsReadonlyAccess
+        - EventBridgePutEventsPolicy:
+            EventBusName: !Ref ErrorBusName
+      
   
+  QueryUsersFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub 'skafu-${Environment}-observability-query-users'
+      CodeUri: backend/functions/query_users/src/
+      Handler: app.lambda_handler
+      Policies:
+        - CognitoReadonlyAccess
+        - EventBridgePutEventsPolicy:
+            EventBusName: !Ref ErrorBusName
+      
+  
+  QueryFinanceCostFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub 'skafu-${Environment}-observability-query-finance-cost'
+      CodeUri: backend/functions/query_finance_cost/src/
+      Handler: app.lambda_handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ce:GetCostAndUsage
+              Resource: '*'
+        - EventBridgePutEventsPolicy:
+            EventBusName: !Ref ErrorBusName
+      
+  
+  QueryFinanceForecastFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub 'skafu-${Environment}-observability-query-finance-forecast'
+      CodeUri: backend/functions/query_finance_forecast/src/
+      Handler: app.lambda_handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ce:GetCostForecast
+              Resource: '*'
+        - EventBridgePutEventsPolicy:
+            EventBusName: !Ref ErrorBusName
+      
+  
+  QueryAlarmsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub 'skafu-${Environment}-observability-query-alarms'
+      CodeUri: backend/functions/query_alarms/src/
+      Handler: app.lambda_handler
+      Policies:
+        - CloudWatchReadonlyAccess
+        - EventBridgePutEventsPolicy:
+            EventBusName: !Ref ErrorBusName
+      

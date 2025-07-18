@@ -289,7 +289,25 @@ Resources:
       AliasName: !Sub 'alias/skafu-${Environment}'
       TargetKeyId: !Ref KMSKey
 
+  # AWS Lambda Powertools Layer
+  PowertoolsLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: !Sub 'skafu-powertools-${Environment}'
+      Description: AWS Lambda Powertools for Python
+      ContentUri: ../../shared/layers/powertools/
+      CompatibleRuntimes:
+        - python3.12
+      RetentionPolicy: Retain
+    Metadata:
+      BuildMethod: python3.12
+
 Outputs:
+  PowertoolsLayerArn:
+    Description: ARN of the AWS Lambda Powertools Layer
+    Value: !Ref PowertoolsLayer
+    Export:
+      Name: !Sub '${AWS::StackName}-PowertoolsLayerArn'
   ApiEndpoint:
     Description: API Gateway endpoint URL
     Value: !Sub 'https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Environment}'

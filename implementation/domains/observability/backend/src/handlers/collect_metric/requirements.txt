@@ -1,3 +1,0 @@
-# This file is used by SAM to install dependencies for this specific function
-# The actual dependencies are defined in the root requirements.txt file
--r ../../../../requirements.txt

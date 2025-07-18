@@ -1,5 +1,3 @@
 # AWS Lambda Powertools Layer
 aws-lambda-powertools[all]==2.36.0
 
-# Copy shared libraries
-../../../shared/libraries/python/
