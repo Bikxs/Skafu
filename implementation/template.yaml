@@ -1,22 +1,29 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: 'Skafu - Microservices Scaffolding Platform - Root Template'
+Description: Skafu - Microservices Scaffolding Platform - Root Template
 
 Parameters:
   Environment:
     Type: String
-    AllowedValues: [development, staging, production]
+    AllowedValues:
+      - development
+      - staging
+      - production
     Default: development
     Description: Environment name
-  
+
   CorsOrigins:
     Type: String
-    Default: "http://localhost:3000"
+    Default: http://localhost:3000
     Description: Allowed CORS origins
-  
+
   LogLevel:
     Type: String
-    AllowedValues: [DEBUG, INFO, WARN, ERROR]
+    AllowedValues:
+      - DEBUG
+      - INFO
+      - WARN
+      - ERROR
     Default: INFO
     Description: Lambda function log level
 
@@ -47,7 +54,7 @@ Resources:
         Environment: !Ref Environment
         CorsOrigins: !Ref CorsOrigins
         LogLevel: !Ref LogLevel
-  
+
   # Observability Domain Stack
   ObservabilityStack:
     Type: AWS::Serverless::Application
@@ -68,28 +75,28 @@ Outputs:
     Description: API Gateway endpoint URL
     Value: !GetAtt SharedResourcesStack.Outputs.ApiEndpoint
     Export:
-      Name: !Sub '${AWS::StackName}-ApiEndpoint'
-  
+      Name: !Sub ${AWS::StackName}-ApiEndpoint
+
   EventBusName:
     Description: Custom EventBridge bus name
     Value: !GetAtt SharedResourcesStack.Outputs.EventBusName
     Export:
-      Name: !Sub '${AWS::StackName}-EventBusName'
-  
+      Name: !Sub ${AWS::StackName}-EventBusName
+
   ErrorBusName:
     Description: Error EventBridge bus name
     Value: !GetAtt SharedResourcesStack.Outputs.ErrorBusName
     Export:
-      Name: !Sub '${AWS::StackName}-ErrorBusName'
-  
+      Name: !Sub ${AWS::StackName}-ErrorBusName
+
   UserPoolId:
     Description: Cognito User Pool ID
     Value: !GetAtt SharedResourcesStack.Outputs.UserPoolId
     Export:
-      Name: !Sub '${AWS::StackName}-UserPoolId'
-  
+      Name: !Sub ${AWS::StackName}-UserPoolId
+
   UserPoolClientId:
     Description: Cognito User Pool Client ID
     Value: !GetAtt SharedResourcesStack.Outputs.UserPoolClientId
     Export:
-      Name: !Sub '${AWS::StackName}-UserPoolClientId'
+      Name: !Sub ${AWS::StackName}-UserPoolClientId
