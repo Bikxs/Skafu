@@ -14,7 +14,7 @@ from .utils import correlation_id, logger, metrics
 
 __all__ = [
     "EventPublisher",
-    "EventHandler", 
+    "EventHandler",
     "Event",
     "BaseModel",
     "AggregateRoot",

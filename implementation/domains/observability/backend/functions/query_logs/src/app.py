@@ -1,13 +1,13 @@
 import json
-import os
-from datetime import datetime, timezone
 import time
 
 import boto3
 from aws_lambda_powertools import Tracer
 from aws_lambda_powertools import Logger
 from aws_lambda_powertools.utilities.typing import LambdaContext
-from aws_lambda_powertools.utilities.data_classes.api_gateway_proxy_event import APIGatewayProxyEvent
+from aws_lambda_powertools.utilities.data_classes.api_gateway_proxy_event import (
+    APIGatewayProxyEvent
+)
 
 tracer = Tracer()
 logger = Logger()
@@ -18,8 +18,12 @@ logs_client = boto3.client('logs')
 @tracer.capture_lambda_handler
 def handler(event: APIGatewayProxyEvent, context: LambdaContext):
     try:
-        params = event.query_string_parameters or {}
-        
+        # Handle both APIGatewayProxyEvent and plain dict for tests
+        if hasattr(event, 'query_string_parameters'):
+            params = event.query_string_parameters or {}
+        else:
+            params = event.get('queryStringParameters', {}) or {}
+
         log_group_names_str = params.get('logGroupNames')
         query_string = params.get('queryString')
         start_time_epoch = params.get('startTime')
@@ -27,10 +31,12 @@ def handler(event: APIGatewayProxyEvent, context: LambdaContext):
         limit = int(params.get('limit', 1000))
 
         if not all([log_group_names_str, query_string, start_time_epoch, end_time_epoch]):
-            logger.error("Missing required parameters", logGroupNames=log_group_names_str, queryString=query_string, startTime=start_time_epoch, endTime=end_time_epoch)
+            logger.error("Missing required parameters")
             return {
                 'statusCode': 400,
-                'body': json.dumps({'error': 'logGroupNames, queryString, startTime, and endTime are required'})
+                'body': json.dumps({
+                    'error': 'logGroupNames, queryString, startTime, and endTime are required'
+                })
             }
 
         log_group_names = log_group_names_str.split(',')
@@ -63,7 +69,7 @@ def handler(event: APIGatewayProxyEvent, context: LambdaContext):
             time.sleep(1) # Wait for 1 second before polling again
             response = logs_client.get_query_results(queryId=query_id)
             status = response['status']
-        
+
         return {
             'statusCode': 200,
             'headers': {

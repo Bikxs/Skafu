@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 import pytest
 
-from implementation.domains.observability.backend.functions.query_alarms.src.app import handler
+from src.app import handler
 
 @pytest.fixture
 def apigw_event_alarms():
@@ -19,9 +19,7 @@ def apigw_event_alarms():
 
 @pytest.fixture
 def mock_cloudwatch_client():
-    with patch('implementation.domains.observability.backend.functions.query_alarms.src.app.boto3.client') as mock_boto_client:
-        mock_client = MagicMock()
-        mock_boto_client.return_value = mock_client
+    with patch('src.app.cloudwatch_client') as mock_client:
         yield mock_client
 
 def test_query_alarms_success(apigw_event_alarms, mock_cloudwatch_client):
@@ -30,7 +28,7 @@ def test_query_alarms_success(apigw_event_alarms, mock_cloudwatch_client):
             {
                 "AlarmName": "my-alarm-1",
                 "StateValue": "ALARM",
-                "StateUpdatedTimestamp": datetime.now(timezone.UTC)
+                "StateUpdatedTimestamp": datetime.now(timezone.utc)
             }
         ],
         "CompositeAlarms": [],

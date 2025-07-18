@@ -5,7 +5,7 @@ import time
 
 import pytest
 
-from implementation.domains.observability.backend.functions.query_logs.src.app import handler
+from src.app import handler
 
 @pytest.fixture
 def apigw_event_logs():
@@ -23,9 +23,7 @@ def apigw_event_logs():
 
 @pytest.fixture
 def mock_logs_client():
-    with patch('implementation.domains.observability.backend.functions.query_logs.src.app.boto3.client') as mock_boto_client:
-        mock_client = MagicMock()
-        mock_boto_client.return_value = mock_client
+    with patch('src.app.logs_client') as mock_client:
         yield mock_client
 
 def test_query_logs_success(apigw_event_logs, mock_logs_client):

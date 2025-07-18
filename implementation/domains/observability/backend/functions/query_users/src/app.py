@@ -1,11 +1,12 @@
 import json
-import os
 
 import boto3
 from aws_lambda_powertools import Tracer
 from aws_lambda_powertools import Logger
 from aws_lambda_powertools.utilities.typing import LambdaContext
-from aws_lambda_powertools.utilities.data_classes.api_gateway_proxy_event import APIGatewayProxyEvent
+from aws_lambda_powertools.utilities.data_classes.api_gateway_proxy_event import (
+    APIGatewayProxyEvent
+)
 
 tracer = Tracer()
 logger = Logger()
@@ -16,8 +17,12 @@ cognito_client = boto3.client('cognito-idp')
 @tracer.capture_lambda_handler
 def handler(event: APIGatewayProxyEvent, context: LambdaContext):
     try:
-        params = event.query_string_parameters or {}
-        
+        # Handle both APIGatewayProxyEvent and plain dict for tests
+        if hasattr(event, 'query_string_parameters'):
+            params = event.query_string_parameters or {}
+        else:
+            params = event.get('queryStringParameters', {}) or {}
+
         user_pool_id = params.get('userPoolId')
         limit = int(params.get('limit', 60))
         pagination_token = params.get('paginationToken')
@@ -40,7 +45,7 @@ def handler(event: APIGatewayProxyEvent, context: LambdaContext):
             api_params['Filter'] = filter_string
 
         response = cognito_client.list_users(**api_params)
-        
+
         return {
             'statusCode': 200,
             'headers': {

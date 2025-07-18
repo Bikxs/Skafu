@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 import pytest
 
-from implementation.domains.observability.backend.functions.query_users.src.app import handler
+from src.app import handler
 
 @pytest.fixture
 def apigw_event_users():
@@ -19,9 +19,7 @@ def apigw_event_users():
 
 @pytest.fixture
 def mock_cognito_client():
-    with patch('implementation.domains.observability.backend.functions.query_users.src.app.boto3.client') as mock_boto_client:
-        mock_client = MagicMock()
-        mock_boto_client.return_value = mock_client
+    with patch('src.app.cognito_client') as mock_client:
         yield mock_client
 
 def test_query_users_success(apigw_event_users, mock_cognito_client):

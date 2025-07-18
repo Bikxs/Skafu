@@ -1,11 +1,12 @@
 import json
-import os
 
 import boto3
 from aws_lambda_powertools import Tracer
 from aws_lambda_powertools import Logger
 from aws_lambda_powertools.utilities.typing import LambdaContext
-from aws_lambda_powertools.utilities.data_classes.api_gateway_proxy_event import APIGatewayProxyEvent
+from aws_lambda_powertools.utilities.data_classes.api_gateway_proxy_event import (
+    APIGatewayProxyEvent
+)
 
 tracer = Tracer()
 logger = Logger()
@@ -16,8 +17,12 @@ cloudwatch_client = boto3.client('cloudwatch')
 @tracer.capture_lambda_handler
 def handler(event: APIGatewayProxyEvent, context: LambdaContext):
     try:
-        params = event.query_string_parameters or {}
-        
+        # Handle both APIGatewayProxyEvent and plain dict for tests
+        if hasattr(event, 'query_string_parameters'):
+            params = event.query_string_parameters or {}
+        else:
+            params = event.get('queryStringParameters', {}) or {}
+
         alarm_names_str = params.get('alarmNames')
         alarm_name_prefix = params.get('alarmNamePrefix')
         state_value = params.get('stateValue')
@@ -40,7 +45,7 @@ def handler(event: APIGatewayProxyEvent, context: LambdaContext):
             api_params['NextToken'] = next_token
 
         response = cloudwatch_client.describe_alarms(**api_params)
-        
+
         return {
             'statusCode': 200,
             'headers': {

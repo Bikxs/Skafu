@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from implementation.domains.observability.backend.functions.query_traces.src.app import handler
+from src.app import handler
 
 @pytest.fixture
 def apigw_event_traces():
@@ -21,9 +21,7 @@ def apigw_event_traces():
 
 @pytest.fixture
 def mock_xray_client():
-    with patch('implementation.domains.observability.backend.functions.query_traces.src.app.boto3.client') as mock_boto_client:
-        mock_client = MagicMock()
-        mock_boto_client.return_value = mock_client
+    with patch('src.app.xray_client') as mock_client:
         yield mock_client
 
 def test_query_traces_success(apigw_event_traces, mock_xray_client):

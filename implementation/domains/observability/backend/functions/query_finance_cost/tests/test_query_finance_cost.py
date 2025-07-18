@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from implementation.domains.observability.backend.functions.query_finance_cost.src.app import handler
+from src.app import handler
 
 @pytest.fixture
 def apigw_event_finance_cost():
@@ -24,9 +24,7 @@ def apigw_event_finance_cost():
 
 @pytest.fixture
 def mock_cost_explorer_client():
-    with patch('implementation.domains.observability.backend.functions.query_finance_cost.src.app.boto3.client') as mock_boto_client:
-        mock_client = MagicMock()
-        mock_boto_client.return_value = mock_client
+    with patch('src.app.cost_explorer_client') as mock_client:
         yield mock_client
 
 def test_query_finance_cost_success(apigw_event_finance_cost, mock_cost_explorer_client):

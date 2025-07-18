@@ -1,12 +1,12 @@
 import json
-import os
-from datetime import datetime, timezone
 
 import boto3
 from aws_lambda_powertools import Tracer
 from aws_lambda_powertools import Logger
 from aws_lambda_powertools.utilities.typing import LambdaContext
-from aws_lambda_powertools.utilities.data_classes.api_gateway_proxy_event import APIGatewayProxyEvent
+from aws_lambda_powertools.utilities.data_classes.api_gateway_proxy_event import (
+    APIGatewayProxyEvent
+)
 
 tracer = Tracer()
 logger = Logger()
@@ -17,8 +17,12 @@ cost_explorer_client = boto3.client('ce')
 @tracer.capture_lambda_handler
 def handler(event: APIGatewayProxyEvent, context: LambdaContext):
     try:
-        params = event.query_string_parameters or {}
-        
+        # Handle both APIGatewayProxyEvent and plain dict for tests
+        if hasattr(event, 'query_string_parameters'):
+            params = event.query_string_parameters or {}
+        else:
+            params = event.get('queryStringParameters', {}) or {}
+
         time_period_start = params.get('timePeriodStart')
         time_period_end = params.get('timePeriodEnd')
         granularity = params.get('granularity')
@@ -28,10 +32,16 @@ def handler(event: APIGatewayProxyEvent, context: LambdaContext):
         next_page_token = params.get('nextPageToken')
 
         if not all([time_period_start, time_period_end, granularity, metrics_str]):
-            logger.error("Missing required parameters", timePeriodStart=time_period_start, timePeriodEnd=time_period_end, granularity=granularity, metrics=metrics_str)
+            logger.error("Missing required parameters",
+                        timePeriodStart=time_period_start,
+                        timePeriodEnd=time_period_end,
+                        granularity=granularity,
+                        metrics=metrics_str)
             return {
                 'statusCode': 400,
-                'body': json.dumps({'error': 'timePeriodStart, timePeriodEnd, granularity, and metrics are required'})
+                'body': json.dumps({
+                    'error': 'timePeriodStart, timePeriodEnd, granularity, and metrics are required'
+                })
             }
 
         metrics = metrics_str.split(',')
@@ -55,7 +65,7 @@ def handler(event: APIGatewayProxyEvent, context: LambdaContext):
                     'statusCode': 400,
                     'body': json.dumps({'error': f'Invalid groupBy JSON: {e}'})
                 }
-        
+
         if filter_str:
             try:
                 filter_obj = json.loads(filter_str)
@@ -71,7 +81,7 @@ def handler(event: APIGatewayProxyEvent, context: LambdaContext):
             api_params['NextPageToken'] = next_page_token
 
         response = cost_explorer_client.get_cost_and_usage(**api_params)
-        
+
         return {
             'statusCode': 200,
             'headers': {

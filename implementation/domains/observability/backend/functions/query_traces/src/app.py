@@ -1,12 +1,13 @@
 import json
-import os
-from datetime import datetime, timezone
+from datetime import datetime
 
 import boto3
 from aws_lambda_powertools import Tracer
 from aws_lambda_powertools import Logger
 from aws_lambda_powertools.utilities.typing import LambdaContext
-from aws_lambda_powertools.utilities.data_classes.api_gateway_proxy_event import APIGatewayProxyEvent
+from aws_lambda_powertools.utilities.data_classes.api_gateway_proxy_event import (
+    APIGatewayProxyEvent
+)
 
 tracer = Tracer()
 logger = Logger()
@@ -17,15 +18,19 @@ xray_client = boto3.client('xray')
 @tracer.capture_lambda_handler
 def handler(event: APIGatewayProxyEvent, context: LambdaContext):
     try:
-        params = event.query_string_parameters or {}
-        
+        # Handle both APIGatewayProxyEvent and plain dict for tests
+        if hasattr(event, 'query_string_parameters'):
+            params = event.query_string_parameters or {}
+        else:
+            params = event.get('queryStringParameters', {}) or {}
+
         start_time_str = params.get('startTime')
         end_time_str = params.get('endTime')
         filter_expression = params.get('filterExpression')
         next_token = params.get('nextToken')
-        
+
         if not start_time_str or not end_time_str:
-            logger.error("Missing required parameters", start_time=start_time_str, end_time=end_time_str)
+            logger.error("Missing required parameters")
             return {
                 'statusCode': 400,
                 'body': json.dumps({'error': 'startTime and endTime are required'})
@@ -53,7 +58,7 @@ def handler(event: APIGatewayProxyEvent, context: LambdaContext):
             api_params['NextToken'] = next_token
 
         response = xray_client.get_trace_summaries(**api_params)
-        
+
         return {
             'statusCode': 200,
             'headers': {

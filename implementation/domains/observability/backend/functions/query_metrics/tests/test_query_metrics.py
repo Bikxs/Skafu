@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from implementation.domains.observability.backend.functions.query_metrics.src.app import handler
+from src.app import handler
 
 @pytest.fixture
 def apigw_event_metrics():
@@ -24,9 +24,7 @@ def apigw_event_metrics():
 
 @pytest.fixture
 def mock_cloudwatch_client():
-    with patch('implementation.domains.observability.backend.functions.query_metrics.src.app.boto3.client') as mock_boto_client:
-        mock_client = MagicMock()
-        mock_boto_client.return_value = mock_client
+    with patch('src.app.cloudwatch_client') as mock_client:
         yield mock_client
 
 def test_query_metrics_success(apigw_event_metrics, mock_cloudwatch_client):
@@ -55,9 +53,9 @@ def test_query_metrics_success(apigw_event_metrics, mock_cloudwatch_client):
 
     mock_cloudwatch_client.get_metric_data.assert_called_once()
     args, kwargs = mock_cloudwatch_client.get_metric_data.call_args
-    assert kwargs['MetricDataQueries'][0]['Metric']['Namespace'] == "AWS/Lambda"
-    assert kwargs['MetricDataQueries'][0]['Metric']['MetricName'] == "Invocations"
-    assert kwargs['MetricDataQueries'][0]['Metric']['Dimensions'][0]['Name'] == "FunctionName"
+    assert kwargs['MetricDataQueries'][0]['MetricStat']['Metric']['Namespace'] == "AWS/Lambda"
+    assert kwargs['MetricDataQueries'][0]['MetricStat']['Metric']['MetricName'] == "Invocations"
+    assert kwargs['MetricDataQueries'][0]['MetricStat']['Metric']['Dimensions'][0]['Name'] == "FunctionName"
 
 def test_query_metrics_missing_parameters(apigw_event_metrics):
     event = apigw_event_metrics

@@ -116,27 +116,6 @@ Resources:
       ParentId: !GetAtt ObservabilityResource.ResourceId
       PathPart: 'security-events'
 
-  SecurityEventsMethod:
-    Type: AWS::ApiGateway::Method
-    Properties:
-      RestApiId: !Ref ApiGatewayId
-      ResourceId: !GetAtt SecurityEventsResource.ResourceId
-      HttpMethod: GET
-      AuthorizationType: COGNITO_USER_POOLS
-      AuthorizerId: !Ref ApiGatewayAuthorizer
-      Integration:
-        IntegrationHttpMethod: POST
-        Type: AWS_PROXY
-        Uri: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${QuerySecurityEventsFunction.Arn}/invocations"
-
-  SecurityEventsPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      FunctionName: !GetAtt QuerySecurityEventsFunction.Arn
-      Action: lambda:InvokeFunction
-      Principal: apigateway.amazonaws.com
-      SourceArn: !Sub "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayId}/*/*"
-
   TracesResource:
     Type: AWS::ApiGateway::Resource
     Properties:
@@ -331,24 +310,6 @@ Resources:
       Handler: app.lambda_handler
       Policies:
         - CloudWatchReadonlyAccess
-        - EventBridgePutEventsPolicy:
-            EventBusName: !Ref ErrorBusName
-      
-  
-  QuerySecurityEventsFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      FunctionName: !Sub 'skafu-${Environment}-observability-query-security-events'
-      CodeUri: backend/functions/query_security_events/src/
-      Handler: app.lambda_handler
-      Policies:
-        - Version: '2012-10-17'
-          Statement:
-            - Effect: Allow
-              Action:
-                - dynamodb:Query
-                - dynamodb:GetItem
-              Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/skafu-error-analytics-${Environment}'
         - EventBridgePutEventsPolicy:
             EventBusName: !Ref ErrorBusName
       

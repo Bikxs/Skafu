@@ -1,12 +1,13 @@
 import json
-import os
-from datetime import datetime, timezone
+from datetime import datetime
 
 import boto3
 from aws_lambda_powertools import Tracer
 from aws_lambda_powertools import Logger
 from aws_lambda_powertools.utilities.typing import LambdaContext
-from aws_lambda_powertools.utilities.data_classes.api_gateway_proxy_event import APIGatewayProxyEvent
+from aws_lambda_powertools.utilities.data_classes.api_gateway_proxy_event import (
+    APIGatewayProxyEvent
+)
 
 tracer = Tracer()
 logger = Logger()
@@ -18,8 +19,12 @@ cloudwatch_client = boto3.client('cloudwatch')
 def handler(event: APIGatewayProxyEvent, context: LambdaContext):
     try:
         # Extract parameters from query string
-        params = event.query_string_parameters or {}
-        
+        # Handle both APIGatewayProxyEvent and plain dict for tests
+        if hasattr(event, 'query_string_parameters'):
+            params = event.query_string_parameters or {}
+        else:
+            params = event.get('queryStringParameters', {}) or {}
+
         namespace = params.get('namespace')
         metric_name = params.get('metricName')
         start_time_str = params.get('startTime')
@@ -29,10 +34,12 @@ def handler(event: APIGatewayProxyEvent, context: LambdaContext):
         dimensions_str = params.get('dimensions', '{}')
 
         if not all([namespace, metric_name, start_time_str, end_time_str]):
-            logger.error("Missing required parameters", namespace=namespace, metric_name=metric_name, start_time=start_time_str, end_time=end_time_str)
+            logger.error("Missing required parameters")
             return {
                 'statusCode': 400,
-                'body': json.dumps({'error': 'namespace, metricName, startTime, and endTime are required'})
+                'body': json.dumps({
+                    'error': 'namespace, metricName, startTime, and endTime are required'
+                })
             }
 
         try:
@@ -76,7 +83,7 @@ def handler(event: APIGatewayProxyEvent, context: LambdaContext):
             EndTime=end_time,
             ScanBy='TimestampAscending'
         )
-        
+
         return {
             'statusCode': 200,
             'headers': {

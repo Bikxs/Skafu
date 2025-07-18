@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# LTVBD (Lint Test Validate Build Deploy) Script for Azma Core Framework Backend
-# Must be run from implementation/core/backend/ directory
+# LTVBD (Lint Test Validate Build Deploy) Script for Skafu Backend
+# Must be run from implementation/ directory
 
 set -e  # Exit immediately if a command exits with a non-zero status
 
@@ -55,7 +55,7 @@ print_progress() {
 # Function to check if we're in the correct directory
 check_directory() {
     if [[ ! -f "template.yaml" ]] || [[ ! -f "samconfig.toml" ]]; then
-        print_error "This script must be run from implementation/core/backend/ directory"
+        print_error "This script must be run from implementation/ directory"
         print_error "Expected files: template.yaml, samconfig.toml"
         exit 1
     fi
@@ -119,7 +119,7 @@ main() {
         esac
     done
 
-    print_step "Azma Core Framework - Test, Validate, Build, Deploy"
+    print_step "Backend - Test, Validate, Build, Deploy"
     
     # Check if we're in the correct directory
     check_directory
@@ -129,7 +129,7 @@ main() {
     
     # Step 1: Python Linting with pylint
     print_step "Step 1: Python Linting"
-    run_command "Running pylint linter" "pylint functions/ --rcfile=.pylintrc --score=yes"
+    run_command "Running pylint linter" "pylint domains/observability/backend/functions/*/src/ shared/libraries/python/skafu_shared/ --score=yes --fail-under=9.9999"
     
     # Step 2: SAM Validate with Lint
     print_step "Step 2: SAM Template Validation"
@@ -138,16 +138,38 @@ main() {
     # Step 3: Backend Tests (excluding performance tests for speed)
     print_step "Step 3: Backend Tests (Unit + Integration)"
     
-    # Build pytest command based on configuration
-    if [[ "$INCLUDE_SLOW_TESTS" == "true" ]]; then
-        print_progress "Running all tests (including slow tests)"
-        PYTEST_CMD="PYTEST_CURRENT_TEST=1 python3 -m pytest tests -v --tb=short --ignore=tests/performance"
-    else
-        print_progress "Running tests (excluding slow tests for faster execution)"
-        PYTEST_CMD="PYTEST_CURRENT_TEST=1 python3 -m pytest tests -v --tb=short --ignore=tests/performance -m 'not slow'"
-    fi
+    # Run tests for each function individually to handle relative imports
+    print_progress "Running tests for each function individually"
     
-    run_command "Running tests" "$PYTEST_CMD"
+    # Find all function directories
+    FUNCTION_DIRS=($(find domains/observability/backend/functions -mindepth 1 -maxdepth 1 -type d | sort))
+    
+    for func_dir in "${FUNCTION_DIRS[@]}"; do
+        if [[ -d "$func_dir/tests" ]]; then
+            func_name=$(basename "$func_dir")
+            print_progress "Running tests for $func_name"
+            
+            # Change to function directory and run tests
+            pushd "$func_dir" > /dev/null
+            
+            if [[ "$INCLUDE_SLOW_TESTS" == "true" ]]; then
+                PYTEST_CMD="PYTEST_CURRENT_TEST=1 python3 -m pytest tests/ -v --tb=short"
+            else
+                PYTEST_CMD="PYTEST_CURRENT_TEST=1 python3 -m pytest tests/ -v --tb=short -m 'not slow'"
+            fi
+            
+            if ! eval "$PYTEST_CMD"; then
+                popd > /dev/null
+                print_error "Tests failed for $func_name"
+                exit 1
+            fi
+            
+            popd > /dev/null
+            print_success "Tests passed for $func_name"
+        fi
+    done
+    
+    print_success "All function tests completed"
     
     # Step 4: SAM Build
     print_step "Step 4: SAM Build"

@@ -29,7 +29,7 @@ class Event:
     timestamp: str
     version: str = "1.0"
     metadata: Optional[Dict[str, Any]] = None
-    
+
     def __post_init__(self):
         if not self.event_id:
             self.event_id = str(uuid.uuid4())
@@ -39,11 +39,11 @@ class Event:
             self.correlation_id = correlation_id.get()
         if self.metadata is None:
             self.metadata = {}
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert event to dictionary"""
         return asdict(self)
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'Event':
         """Create event from dictionary"""
@@ -52,20 +52,20 @@ class Event:
 
 class EventStore:
     """DynamoDB-based event store implementation"""
-    
+
     def __init__(self, table_name: str):
         self.table_name = table_name
         self.dynamodb = boto3.resource('dynamodb')
         self.table = self.dynamodb.Table(table_name)
         self.logger = logger
-    
+
     @tracer.capture_method
     def append_event(self, event: Event, expected_version: Optional[int] = None) -> None:
         """Append event to the event store"""
         try:
             # Get current sequence number
             sequence_number = self._get_next_sequence_number(event.aggregate_id)
-            
+
             # Create item
             item = {
                 'aggregateId': event.aggregate_id,
@@ -78,19 +78,23 @@ class EventStore:
                 'version': event.version,
                 'metadata': event.metadata or {}
             }
-            
+
             # Add optimistic locking if expected version provided
             condition_expression = None
             if expected_version is not None:
-                condition_expression = "attribute_not_exists(aggregateId) OR eventSequence < :expected_version"
-                item['ExpressionAttributeValues'] = {':expected_version': f"{expected_version:010d}"}
-            
+                condition_expression = (
+                    "attribute_not_exists(aggregateId) OR eventSequence < :expected_version"
+                )
+                item['ExpressionAttributeValues'] = {
+                    ':expected_version': f"{expected_version:010d}"
+                }
+
             # Store event
             self.table.put_item(
                 Item=item,
                 ConditionExpression=condition_expression
             )
-            
+
             self.logger.info(
                 "Event appended to store",
                 extra={
@@ -100,12 +104,14 @@ class EventStore:
                     "sequence_number": sequence_number
                 }
             )
-            
+
         except ClientError as e:
             if e.response['Error']['Code'] == 'ConditionalCheckFailedException':
-                raise SkafuException(f"Concurrency conflict for aggregate {event.aggregate_id}")
-            raise SkafuException(f"Failed to append event: {str(e)}")
-    
+                raise SkafuException(
+                    f"Concurrency conflict for aggregate {event.aggregate_id}"
+                ) from e
+            raise SkafuException(f"Failed to append event: {str(e)}") from e
+
     @tracer.capture_method
     def get_events(self, aggregate_id: str, from_sequence: Optional[int] = None) -> List[Event]:
         """Get events for an aggregate"""
@@ -114,13 +120,13 @@ class EventStore:
                 'KeyConditionExpression': 'aggregateId = :aggregate_id',
                 'ExpressionAttributeValues': {':aggregate_id': aggregate_id}
             }
-            
+
             if from_sequence is not None:
                 query_kwargs['KeyConditionExpression'] += ' AND eventSequence >= :from_seq'
                 query_kwargs['ExpressionAttributeValues'][':from_seq'] = f"{from_sequence:010d}"
-            
+
             response = self.table.query(**query_kwargs)
-            
+
             events = []
             for item in response['Items']:
                 event = Event(
@@ -134,12 +140,14 @@ class EventStore:
                     metadata=item.get('metadata', {})
                 )
                 events.append(event)
-            
+
             return events
-            
+
         except ClientError as e:
-            raise SkafuException(f"Failed to get events for aggregate {aggregate_id}: {str(e)}")
-    
+            raise SkafuException(
+                f"Failed to get events for aggregate {aggregate_id}: {str(e)}"
+            ) from e
+
     def _get_next_sequence_number(self, aggregate_id: str) -> int:
         """Get the next sequence number for an aggregate"""
         try:
@@ -149,26 +157,25 @@ class EventStore:
                 ScanIndexForward=False,
                 Limit=1
             )
-            
+
             if response['Items']:
                 last_sequence = response['Items'][0]['eventSequence']
                 return int(last_sequence) + 1
-            else:
-                return 1
-                
+            return 1
+
         except ClientError as e:
-            raise SkafuException(f"Failed to get sequence number: {str(e)}")
+            raise SkafuException(f"Failed to get sequence number: {str(e)}") from e
 
 
 class EventPublisher:
     """EventBridge event publisher"""
-    
+
     def __init__(self, event_bus_name: str, error_bus_name: str):
         self.event_bus_name = event_bus_name
         self.error_bus_name = error_bus_name
         self.events_client = boto3.client('events')
         self.logger = logger
-    
+
     @tracer.capture_method
     def publish_event(self, event: Event, source: str = "skafu") -> None:
         """Publish event to EventBridge"""
@@ -180,13 +187,15 @@ class EventPublisher:
                 'EventBusName': self.event_bus_name,
                 'Resources': [event.aggregate_id]
             }
-            
+
             response = self.events_client.put_events(Entries=[event_entry])
-            
+
             if response['FailedEntryCount'] > 0:
                 failed_entry = response['Entries'][0]
-                raise SkafuException(f"Failed to publish event: {failed_entry.get('ErrorMessage', 'Unknown error')}")
-            
+                raise SkafuException(
+                    f"Failed to publish event: {failed_entry.get('ErrorMessage', 'Unknown error')}"
+                )
+
             self.logger.info(
                 "Event published to EventBridge",
                 extra={
@@ -196,11 +205,11 @@ class EventPublisher:
                     "event_bus": self.event_bus_name
                 }
             )
-            
+
         except ClientError as e:
             self._publish_error(event, str(e))
-            raise SkafuException(f"Failed to publish event: {str(e)}")
-    
+            raise SkafuException(f"Failed to publish event: {str(e)}") from e
+
     @tracer.capture_method
     def publish_error(self, error: Exception, context: Dict[str, Any]) -> None:
         """Publish error to error bus"""
@@ -212,19 +221,19 @@ class EventPublisher:
                 'timestamp': datetime.utcnow().isoformat(),
                 'correlation_id': correlation_id.get()
             }
-            
+
             event_entry = {
                 'Source': 'skafu.error',
                 'DetailType': 'Error Occurred',
                 'Detail': json.dumps(error_event),
                 'EventBusName': self.error_bus_name
             }
-            
+
             self.events_client.put_events(Entries=[event_entry])
-            
+
         except ClientError as e:
             self.logger.error(f"Failed to publish error to error bus: {str(e)}")
-    
+
     def _publish_error(self, original_event: Event, error_message: str) -> None:
         """Publish error for failed event publication"""
         error_context = {
@@ -233,7 +242,7 @@ class EventPublisher:
             'aggregate_id': original_event.aggregate_id,
             'error_message': error_message
         }
-        
+
         self.publish_error(
             SkafuException(f"Failed to publish event: {error_message}"),
             error_context
@@ -242,18 +251,18 @@ class EventPublisher:
 
 class EventHandler:
     """Base class for event handlers"""
-    
+
     def __init__(self, event_store: EventStore, event_publisher: EventPublisher):
         self.event_store = event_store
         self.event_publisher = event_publisher
         self.logger = logger
-    
+
     @tracer.capture_method
     def handle_event(self, event: Event, context: LambdaContext) -> None:
         """Handle incoming event"""
         try:
             correlation_id.set(event.correlation_id)
-            
+
             self.logger.info(
                 "Processing event",
                 extra={
@@ -262,10 +271,10 @@ class EventHandler:
                     "aggregate_id": event.aggregate_id
                 }
             )
-            
+
             # Template method - override in subclasses
             self._handle_event_impl(event, context)
-            
+
         except Exception as e:
             self.logger.error(
                 "Error handling event",
@@ -275,7 +284,7 @@ class EventHandler:
                     "error": str(e)
                 }
             )
-            
+
             # Publish error
             self.event_publisher.publish_error(e, {
                 'event_id': event.event_id,
@@ -283,9 +292,9 @@ class EventHandler:
                 'aggregate_id': event.aggregate_id,
                 'handler': self.__class__.__name__
             })
-            
+
             raise
-    
+
     def _handle_event_impl(self, event: Event, context: LambdaContext) -> None:
         """Override this method in subclasses"""
         raise NotImplementedError("Subclasses must implement _handle_event_impl")
