@@ -95,6 +95,68 @@ def compact_voice_name_for_filename(voice_name):
     # If nothing remains, use original voice name as fallback
     return name if name else voice_name
 
+def preprocess_text_for_natural_speech(text, pause_style='dots', enable_pauses=True):
+    """
+    Preprocess text to add natural pauses for more realistic speech synthesis.
+    
+    Args:
+        text (str): The text to preprocess
+        pause_style (str): Style of pauses - 'dots', 'breaks', or 'mixed'
+        enable_pauses (bool): Whether to add pause markers
+    
+    Returns:
+        str: Preprocessed text with pause markers
+    """
+    if not enable_pauses:
+        return text
+    
+    # Define pause markers based on style
+    if pause_style == 'dots':
+        comma_pause = ", "  # Short pause
+        sentence_pause = ". "  # Medium pause  
+        paragraph_pause = "... "  # Long pause
+    elif pause_style == 'breaks':
+        comma_pause = ", "
+        sentence_pause = ".\n"
+        paragraph_pause = "\n\n"
+    else:  # mixed
+        comma_pause = ", "
+        sentence_pause = ". . "
+        paragraph_pause = "...\n"
+    
+    # Process the text
+    lines = text.split('\n')
+    processed_lines = []
+    
+    for i, line in enumerate(lines):
+        # Skip empty lines
+        if not line.strip():
+            # If there's a next non-empty line, this represents a paragraph break
+            if i < len(lines) - 1:
+                processed_lines.append(paragraph_pause)
+            continue
+        
+        # Process the line
+        processed_line = line
+        
+        # Add pauses after sentences (but not if already followed by multiple dots)
+        processed_line = re.sub(r'([.!?])(\s+)(?!\.)', r'\1' + sentence_pause[1:], processed_line)
+        
+        # Ensure questions and exclamations also get pauses
+        processed_line = re.sub(r'([!?])(\s+)', r'\1' + sentence_pause[1:], processed_line)
+        
+        processed_lines.append(processed_line)
+    
+    # Join the lines back together
+    result = '\n'.join(processed_lines)
+    
+    # Clean up any excessive whitespace or pause markers
+    result = re.sub(r'\n\n\n+', '\n\n', result)  # Limit multiple newlines
+    result = re.sub(r'\.\.\.\.+', '...', result)  # Limit multiple dots
+    result = re.sub(r'\s+', ' ', result)  # Normalize spaces
+    
+    return result.strip()
+
 def get_voice_model_path(voices_dir, voice_name):
     """
     Get the path to the voice model file for a given voice name.
@@ -106,7 +168,7 @@ def get_voice_model_path(voices_dir, voice_name):
                 return os.path.join(root, file)
     return None
 
-def process_single_file(file_path, voice_name, voices_dir, piper_executable):
+def process_single_file(file_path, voice_name, voices_dir, piper_executable, pause_style='dots', enable_pauses=True, speed=1.0):
     """
     Process a single markdown file and convert it to audio.
     Returns (success, result, voice_used) tuple.
@@ -133,6 +195,9 @@ def process_single_file(file_path, voice_name, voices_dir, piper_executable):
         if not text_content.strip():
             return False, f"File {file_path.name} is empty or contains no text content", voice_name
         
+        # Preprocess text for natural speech
+        text_content = preprocess_text_for_natural_speech(text_content, pause_style, enable_pauses)
+        
         # Create filename with title, voice name, and timestamp
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         # Clean and compact voice name for filename
@@ -153,6 +218,13 @@ def process_single_file(file_path, voice_name, voices_dir, piper_executable):
             "--output_file",
             output_path,
         ]
+        
+        # Add speed parameter if different from default
+        # Note: piper might use --length-scale or --speed parameter
+        if speed != 1.0:
+            # Length scale is inverse of speed (higher = slower)
+            length_scale = 1.0 / speed
+            command.extend(["--length-scale", str(length_scale)])
         
         # Run piper TTS
         result = subprocess.run(command, input=text_content.encode("utf-8"), 
@@ -183,6 +255,14 @@ def main():
     parser.add_argument("path", help="Path to the markdown file or folder containing markdown files.")
     parser.add_argument("--ask-voice", action="store_true", 
                         help="Ask user to select voice instead of using random selection")
+    parser.add_argument("--natural-pauses", action="store_true", default=True,
+                        help="Add natural pauses between sentences and paragraphs (default: True)")
+    parser.add_argument("--no-natural-pauses", dest="natural_pauses", action="store_false",
+                        help="Disable natural pause enhancement")
+    parser.add_argument("--pause-style", choices=["dots", "breaks", "mixed"], default="dots",
+                        help="Style of pause markers: dots (default), breaks, or mixed")
+    parser.add_argument("--speed", type=float, default=1.0,
+                        help="Speech speed multiplier (0.5 = half speed, 2.0 = double speed, default: 1.0)")
     args = parser.parse_args()
 
     # --- Path Validation ---
@@ -262,6 +342,14 @@ def main():
     else:
         print(f"\nProcessing {len(markdown_files)} file(s) with voice '{selected_voice_name}'...")
     
+    if args.natural_pauses:
+        print(f"Natural pauses enabled (style: {args.pause_style})")
+    else:
+        print("Natural pauses disabled")
+    
+    if args.speed != 1.0:
+        print(f"Speech speed: {args.speed}x")
+    
     with tqdm(total=len(markdown_files), desc="Processing files", unit="file") as pbar:
         for file_path in markdown_files:
             # Select voice for this file
@@ -272,7 +360,9 @@ def main():
             
             pbar.set_description(f"Processing {file_path.name} ({current_voice})")
             
-            success, result, voice_used = process_single_file(file_path, current_voice, voices_dir, piper_executable)
+            success, result, voice_used = process_single_file(file_path, current_voice, voices_dir, piper_executable,
+                                                             pause_style=args.pause_style, enable_pauses=args.natural_pauses,
+                                                             speed=args.speed)
             
             if success:
                 successful_files.append((file_path.name, result, voice_used))
