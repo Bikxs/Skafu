@@ -1,7 +1,8 @@
 import json
 from unittest.mock import patch, MagicMock
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
+import os
 import pytest
 
 from implementation.domains.observability.backend.functions.query_security_events.src.app import handler

@@ -1,6 +1,6 @@
 import json
 from unittest.mock import patch, MagicMock
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 
@@ -30,7 +30,7 @@ def test_query_alarms_success(apigw_event_alarms, mock_cloudwatch_client):
             {
                 "AlarmName": "my-alarm-1",
                 "StateValue": "ALARM",
-                "StateUpdatedTimestamp": datetime.utcnow()
+                "StateUpdatedTimestamp": datetime.now(timezone.UTC)
             }
         ],
         "CompositeAlarms": [],

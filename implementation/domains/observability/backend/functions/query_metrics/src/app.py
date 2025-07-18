@@ -1,6 +1,6 @@
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 
 import boto3
 from aws_lambda_powertools import Tracer

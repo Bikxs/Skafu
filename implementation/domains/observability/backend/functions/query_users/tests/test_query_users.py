@@ -1,6 +1,6 @@
 import json
 from unittest.mock import patch, MagicMock
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 
