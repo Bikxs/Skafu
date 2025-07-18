@@ -1,0 +1,1057 @@
+title: AI Integration Domain Data Models
+description: Data models and validation schemas for the AI Integration domain
+version: 1.0.0
+
+# JSON Schema definitions for AI Integration domain entities
+
+schemas:
+  # Core AI Analysis Entity
+  AIAnalysis:
+    type: object
+    required:
+      - id
+      - projectId
+      - analysisType
+      - status
+      - createdAt
+    properties:
+      id:
+        type: string
+        format: uuid
+        description: Unique identifier for the analysis
+        example: "123e4567-e89b-12d3-a456-426614174000"
+      projectId:
+        type: string
+        format: uuid
+        description: Project ID this analysis belongs to
+        example: "456e7890-e12b-34d5-a789-426614174001"
+      analysisType:
+        $ref: "#/schemas/AnalysisType"
+      status:
+        $ref: "#/schemas/AnalysisStatus"
+      requestedBy:
+        type: string
+        format: uuid
+        description: User ID who requested the analysis
+        example: "789e1234-e56f-78d9-a012-426614174002"
+      inputData:
+        type: object
+        additionalProperties: true
+        description: Input data for the analysis
+        example:
+          requirements: "Build a REST API for e-commerce with user authentication"
+          context:
+            budget: "medium"
+            timeline: "3 months"
+            team_size: 5
+      outputData:
+        type: object
+        additionalProperties: true
+        description: Output data from the analysis
+        example:
+          recommendations:
+            - title: "Use microservices architecture"
+              description: "Split the application into smaller services"
+              priority: "high"
+            - title: "Implement JWT authentication"
+              description: "Use JWT tokens for stateless authentication"
+              priority: "medium"
+      recommendations:
+        type: array
+        items:
+          $ref: "#/schemas/Recommendation"
+        description: List of recommendations
+      confidenceScore:
+        type: number
+        format: float
+        minimum: 0
+        maximum: 1
+        description: Confidence score of the analysis
+        example: 0.87
+      tokensUsed:
+        type: integer
+        minimum: 0
+        description: Number of tokens used for this analysis
+        example: 2500
+      cost:
+        type: number
+        format: float
+        minimum: 0
+        description: Cost of the analysis in USD
+        example: 0.05
+      processingTime:
+        type: number
+        format: float
+        minimum: 0
+        description: Processing time in seconds
+        example: 45.2
+      metadata:
+        $ref: "#/schemas/AnalysisMetadata"
+      createdAt:
+        type: string
+        format: date-time
+        description: Timestamp when analysis was created
+        example: "2025-01-18T10:30:00.000Z"
+      startedAt:
+        type: string
+        format: date-time
+        description: Timestamp when analysis started
+        example: "2025-01-18T10:30:15.000Z"
+      completedAt:
+        type: string
+        format: date-time
+        description: Timestamp when analysis completed
+        example: "2025-01-18T10:31:00.000Z"
+      errorMessage:
+        type: string
+        maxLength: 1000
+        description: Error message if analysis failed
+        example: "API rate limit exceeded"
+      retryCount:
+        type: integer
+        minimum: 0
+        maximum: 5
+        description: Number of retry attempts
+        example: 2
+    additionalProperties: false
+
+  AnalysisType:
+    type: string
+    enum:
+      - requirements
+      - architecture
+      - optimization
+      - security
+      - performance
+      - cost
+      - compliance
+    description: Type of AI analysis
+    example: "requirements"
+
+  AnalysisStatus:
+    type: string
+    enum:
+      - pending
+      - queued
+      - in_progress
+      - completed
+      - failed
+      - cancelled
+      - timeout
+    description: Current status of the analysis
+    example: "completed"
+
+  Recommendation:
+    type: object
+    required:
+      - title
+      - description
+      - priority
+      - category
+      - impact
+    properties:
+      title:
+        type: string
+        minLength: 1
+        maxLength: 200
+        description: Recommendation title
+        example: "Use microservices architecture"
+      description:
+        type: string
+        minLength: 1
+        maxLength: 2000
+        description: Detailed description
+        example: "Split the application into smaller, independent services to improve scalability and maintainability"
+      priority:
+        type: string
+        enum: [critical, high, medium, low]
+        description: Priority level
+        example: "high"
+      category:
+        type: string
+        enum: [architecture, security, performance, cost, compliance, maintenance, deployment]
+        description: Recommendation category
+        example: "architecture"
+      impact:
+        type: string
+        enum: [high, medium, low]
+        description: Expected impact
+        example: "high"
+      implementationEffort:
+        type: string
+        enum: [low, medium, high, very_high]
+        description: Implementation effort required
+        example: "high"
+      estimatedCostSavings:
+        type: number
+        format: float
+        minimum: 0
+        description: Estimated cost savings in USD
+        example: 5000.0
+      estimatedTimeSavings:
+        type: integer
+        minimum: 0
+        description: Estimated time savings in hours
+        example: 40
+      risks:
+        type: array
+        items:
+          type: string
+          maxLength: 500
+        description: Associated risks
+        example: ["Increased complexity", "Initial migration effort"]
+      benefits:
+        type: array
+        items:
+          type: string
+          maxLength: 500
+        description: Expected benefits
+        example: ["Better scalability", "Improved fault tolerance"]
+      technicalDetails:
+        type: object
+        additionalProperties: true
+        description: Technical implementation details
+        example:
+          frameworks: ["Node.js", "Docker", "Kubernetes"]
+          patterns: ["API Gateway", "Circuit Breaker"]
+          tools: ["nginx", "redis", "postgresql"]
+      resources:
+        type: array
+        items:
+          type: object
+          properties:
+            title:
+              type: string
+              description: Resource title
+              example: "Microservices Patterns"
+            url:
+              type: string
+              format: uri
+              description: Resource URL
+              example: "https://microservices.io/patterns/"
+            type:
+              type: string
+              enum: [documentation, tutorial, article, book, video, course]
+              description: Resource type
+              example: "documentation"
+          required: [title, url, type]
+        description: Helpful resources
+    additionalProperties: false
+
+  AnalysisMetadata:
+    type: object
+    properties:
+      model:
+        type: string
+        description: AI model used
+        example: "claude-3-sonnet-20240229"
+      version:
+        type: string
+        description: Model version
+        example: "1.0.0"
+      temperature:
+        type: number
+        format: float
+        minimum: 0
+        maximum: 1
+        description: Temperature setting
+        example: 0.3
+      maxTokens:
+        type: integer
+        minimum: 1
+        description: Maximum tokens limit
+        example: 4000
+      systemPrompt:
+        type: string
+        maxLength: 10000
+        description: System prompt used
+        example: "You are an expert software architect. Analyze the requirements and provide recommendations."
+      promptTokens:
+        type: integer
+        minimum: 0
+        description: Number of prompt tokens
+        example: 1200
+      completionTokens:
+        type: integer
+        minimum: 0
+        description: Number of completion tokens
+        example: 1300
+      totalTokens:
+        type: integer
+        minimum: 0
+        description: Total tokens used
+        example: 2500
+      requestId:
+        type: string
+        description: External API request ID
+        example: "req_123456789"
+      responseTime:
+        type: number
+        format: float
+        minimum: 0
+        description: API response time in seconds
+        example: 2.5
+      cached:
+        type: boolean
+        description: Whether response was cached
+        example: false
+      cacheKey:
+        type: string
+        description: Cache key used
+        example: "analysis_requirements_hash123"
+    additionalProperties: false
+
+  # Code Generation Entity
+  CodeGeneration:
+    type: object
+    required:
+      - id
+      - projectId
+      - generationType
+      - status
+      - createdAt
+    properties:
+      id:
+        type: string
+        format: uuid
+        description: Unique identifier for the code generation
+        example: "123e4567-e89b-12d3-a456-426614174000"
+      projectId:
+        type: string
+        format: uuid
+        description: Project ID this generation belongs to
+        example: "456e7890-e12b-34d5-a789-426614174001"
+      generationType:
+        $ref: "#/schemas/GenerationType"
+      status:
+        $ref: "#/schemas/GenerationStatus"
+      requestedBy:
+        type: string
+        format: uuid
+        description: User ID who requested the generation
+        example: "789e1234-e56f-78d9-a012-426614174002"
+      specification:
+        type: object
+        additionalProperties: true
+        description: Code generation specification
+        example:
+          service_name: "user-service"
+          endpoints:
+            - path: "/users"
+              method: "GET"
+              description: "Get all users"
+            - path: "/users/{id}"
+              method: "GET"
+              description: "Get user by ID"
+          database:
+            type: "postgresql"
+            tables:
+              - name: "users"
+                columns:
+                  - name: "id"
+                    type: "uuid"
+                    primary_key: true
+                  - name: "email"
+                    type: "varchar"
+                    unique: true
+      generatedCode:
+        type: object
+        additionalProperties:
+          type: string
+        description: Generated code files
+        example:
+          "src/app.js": "const express = require('express');\nconst app = express();\n..."
+          "src/routes/users.js": "const express = require('express');\nconst router = express.Router();\n..."
+          "package.json": "{\n  \"name\": \"user-service\",\n  \"version\": \"1.0.0\"\n}"
+      validationResults:
+        type: array
+        items:
+          $ref: "#/schemas/ValidationResult"
+        description: Code validation results
+      tokensUsed:
+        type: integer
+        minimum: 0
+        description: Number of tokens used
+        example: 3500
+      cost:
+        type: number
+        format: float
+        minimum: 0
+        description: Cost of the generation in USD
+        example: 0.07
+      processingTime:
+        type: number
+        format: float
+        minimum: 0
+        description: Processing time in seconds
+        example: 32.1
+      metadata:
+        $ref: "#/schemas/GenerationMetadata"
+      createdAt:
+        type: string
+        format: date-time
+        description: Timestamp when generation was created
+        example: "2025-01-18T10:30:00.000Z"
+      startedAt:
+        type: string
+        format: date-time
+        description: Timestamp when generation started
+        example: "2025-01-18T10:30:10.000Z"
+      completedAt:
+        type: string
+        format: date-time
+        description: Timestamp when generation completed
+        example: "2025-01-18T10:30:42.000Z"
+      errorMessage:
+        type: string
+        maxLength: 1000
+        description: Error message if generation failed
+        example: "Invalid specification format"
+      retryCount:
+        type: integer
+        minimum: 0
+        maximum: 5
+        description: Number of retry attempts
+        example: 1
+    additionalProperties: false
+
+  GenerationType:
+    type: string
+    enum:
+      - service
+      - api
+      - database
+      - config
+      - tests
+      - documentation
+      - deployment
+    description: Type of code generation
+    example: "service"
+
+  GenerationStatus:
+    type: string
+    enum:
+      - pending
+      - queued
+      - in_progress
+      - completed
+      - failed
+      - cancelled
+      - timeout
+    description: Current status of the generation
+    example: "completed"
+
+  ValidationResult:
+    type: object
+    required:
+      - fileName
+      - isValid
+    properties:
+      fileName:
+        type: string
+        minLength: 1
+        maxLength: 500
+        description: Name of the validated file
+        example: "src/app.js"
+      isValid:
+        type: boolean
+        description: Whether the file is valid
+        example: true
+      errors:
+        type: array
+        items:
+          type: string
+          maxLength: 1000
+        description: Validation errors
+        example: ["Syntax error on line 25", "Missing import statement"]
+      warnings:
+        type: array
+        items:
+          type: string
+          maxLength: 1000
+        description: Validation warnings
+        example: ["Unused variable 'temp'", "Consider using const instead of let"]
+      language:
+        type: string
+        enum: [javascript, typescript, python, java, csharp, go, yaml, json, sql]
+        description: Programming language
+        example: "javascript"
+      linter:
+        type: string
+        description: Linter used for validation
+        example: "eslint"
+      metrics:
+        type: object
+        properties:
+          linesOfCode:
+            type: integer
+            minimum: 0
+            description: Number of lines of code
+            example: 125
+          complexity:
+            type: number
+            format: float
+            minimum: 0
+            description: Cyclomatic complexity
+            example: 8.5
+          maintainabilityIndex:
+            type: number
+            format: float
+            minimum: 0
+            maximum: 100
+            description: Maintainability index
+            example: 85.2
+        additionalProperties: false
+    additionalProperties: false
+
+  GenerationMetadata:
+    type: object
+    properties:
+      model:
+        type: string
+        description: AI model used
+        example: "claude-3-sonnet-20240229"
+      version:
+        type: string
+        description: Model version
+        example: "1.0.0"
+      temperature:
+        type: number
+        format: float
+        minimum: 0
+        maximum: 1
+        description: Temperature setting
+        example: 0.1
+      maxTokens:
+        type: integer
+        minimum: 1
+        description: Maximum tokens limit
+        example: 6000
+      systemPrompt:
+        type: string
+        maxLength: 10000
+        description: System prompt used
+        example: "You are an expert software developer. Generate production-ready code."
+      promptTokens:
+        type: integer
+        minimum: 0
+        description: Number of prompt tokens
+        example: 1800
+      completionTokens:
+        type: integer
+        minimum: 0
+        description: Number of completion tokens
+        example: 1700
+      totalTokens:
+        type: integer
+        minimum: 0
+        description: Total tokens used
+        example: 3500
+      requestId:
+        type: string
+        description: External API request ID
+        example: "req_987654321"
+      responseTime:
+        type: number
+        format: float
+        minimum: 0
+        description: API response time in seconds
+        example: 5.2
+      cached:
+        type: boolean
+        description: Whether response was cached
+        example: false
+      cacheKey:
+        type: string
+        description: Cache key used
+        example: "generation_service_hash456"
+      patterns:
+        type: array
+        items:
+          type: string
+        description: Code patterns applied
+        example: ["repository", "service", "dto", "controller"]
+    additionalProperties: false
+
+  # Usage Tracking Entity
+  UsageTracking:
+    type: object
+    required:
+      - id
+      - userId
+      - operation
+      - timestamp
+    properties:
+      id:
+        type: string
+        format: uuid
+        description: Unique identifier for the usage record
+        example: "123e4567-e89b-12d3-a456-426614174000"
+      userId:
+        type: string
+        format: uuid
+        description: User ID
+        example: "456e7890-e12b-34d5-a789-426614174001"
+      organizationId:
+        type: string
+        format: uuid
+        description: Organization ID
+        example: "789e1234-e56f-78d9-a012-426614174002"
+      operation:
+        type: string
+        enum: [project_analysis, code_generation, architecture_review, optimization_analysis]
+        description: Type of operation
+        example: "project_analysis"
+      tokensUsed:
+        type: integer
+        minimum: 0
+        description: Number of tokens used
+        example: 2500
+      cost:
+        type: number
+        format: float
+        minimum: 0
+        description: Cost in USD
+        example: 0.05
+      responseTime:
+        type: number
+        format: float
+        minimum: 0
+        description: Response time in seconds
+        example: 3.2
+      status:
+        type: string
+        enum: [success, failure, timeout, rate_limited]
+        description: Operation status
+        example: "success"
+      metadata:
+        type: object
+        properties:
+          model:
+            type: string
+            description: AI model used
+            example: "claude-3-sonnet-20240229"
+          region:
+            type: string
+            description: AWS region
+            example: "us-east-1"
+          userAgent:
+            type: string
+            description: User agent string
+            example: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+          ipAddress:
+            type: string
+            format: ipv4
+            description: User IP address
+            example: "192.168.1.100"
+          sessionId:
+            type: string
+            description: Session ID
+            example: "sess_123456789"
+        additionalProperties: false
+      timestamp:
+        type: string
+        format: date-time
+        description: Timestamp of the usage
+        example: "2025-01-18T10:30:00.000Z"
+      date:
+        type: string
+        format: date
+        description: Date of the usage (for partitioning)
+        example: "2025-01-18"
+      billingCycle:
+        type: string
+        pattern: "^\\d{4}-\\d{2}$"
+        description: Billing cycle (YYYY-MM)
+        example: "2025-01"
+    additionalProperties: false
+
+  # Usage Limits Entity
+  UsageLimits:
+    type: object
+    required:
+      - id
+      - userId
+      - operation
+      - limits
+    properties:
+      id:
+        type: string
+        format: uuid
+        description: Unique identifier for the usage limits
+        example: "123e4567-e89b-12d3-a456-426614174000"
+      userId:
+        type: string
+        format: uuid
+        description: User ID
+        example: "456e7890-e12b-34d5-a789-426614174001"
+      organizationId:
+        type: string
+        format: uuid
+        description: Organization ID
+        example: "789e1234-e56f-78d9-a012-426614174002"
+      operation:
+        type: string
+        enum: [project_analysis, code_generation, architecture_review, optimization_analysis]
+        description: Type of operation
+        example: "project_analysis"
+      limits:
+        type: object
+        properties:
+          dailyRequests:
+            type: integer
+            minimum: 0
+            description: Daily request limit
+            example: 100
+          monthlyRequests:
+            type: integer
+            minimum: 0
+            description: Monthly request limit
+            example: 2000
+          dailyTokens:
+            type: integer
+            minimum: 0
+            description: Daily token limit
+            example: 500000
+          monthlyTokens:
+            type: integer
+            minimum: 0
+            description: Monthly token limit
+            example: 10000000
+          maxConcurrentRequests:
+            type: integer
+            minimum: 1
+            description: Maximum concurrent requests
+            example: 5
+          maxRequestSize:
+            type: integer
+            minimum: 1
+            description: Maximum request size in bytes
+            example: 1048576
+          rateLimitPerMinute:
+            type: integer
+            minimum: 1
+            description: Rate limit per minute
+            example: 60
+        additionalProperties: false
+      currentUsage:
+        type: object
+        properties:
+          dailyRequests:
+            type: integer
+            minimum: 0
+            description: Current daily requests
+            example: 25
+          monthlyRequests:
+            type: integer
+            minimum: 0
+            description: Current monthly requests
+            example: 450
+          dailyTokens:
+            type: integer
+            minimum: 0
+            description: Current daily tokens
+            example: 125000
+          monthlyTokens:
+            type: integer
+            minimum: 0
+            description: Current monthly tokens
+            example: 2300000
+          concurrentRequests:
+            type: integer
+            minimum: 0
+            description: Current concurrent requests
+            example: 2
+        additionalProperties: false
+      resetTimes:
+        type: object
+        properties:
+          dailyReset:
+            type: string
+            format: date-time
+            description: Next daily reset time
+            example: "2025-01-19T00:00:00.000Z"
+          monthlyReset:
+            type: string
+            format: date-time
+            description: Next monthly reset time
+            example: "2025-02-01T00:00:00.000Z"
+        additionalProperties: false
+      plan:
+        type: string
+        enum: [free, basic, pro, enterprise]
+        description: User plan
+        example: "pro"
+      updatedAt:
+        type: string
+        format: date-time
+        description: Last update timestamp
+        example: "2025-01-18T10:30:00.000Z"
+    additionalProperties: false
+
+  # AI Model Configuration
+  ModelConfiguration:
+    type: object
+    required:
+      - model
+      - version
+      - parameters
+    properties:
+      model:
+        type: string
+        enum: [claude-3-sonnet-20240229, claude-3-haiku-20240307, claude-3-opus-20240229]
+        description: AI model name
+        example: "claude-3-sonnet-20240229"
+      version:
+        type: string
+        description: Model version
+        example: "1.0.0"
+      parameters:
+        type: object
+        properties:
+          temperature:
+            type: number
+            format: float
+            minimum: 0
+            maximum: 1
+            description: Temperature setting
+            example: 0.3
+          maxTokens:
+            type: integer
+            minimum: 1
+            maximum: 8192
+            description: Maximum tokens
+            example: 4000
+          topP:
+            type: number
+            format: float
+            minimum: 0
+            maximum: 1
+            description: Top-p sampling
+            example: 0.9
+          frequencyPenalty:
+            type: number
+            format: float
+            minimum: -2
+            maximum: 2
+            description: Frequency penalty
+            example: 0.0
+          presencePenalty:
+            type: number
+            format: float
+            minimum: -2
+            maximum: 2
+            description: Presence penalty
+            example: 0.0
+          stopSequences:
+            type: array
+            items:
+              type: string
+              maxLength: 100
+            maxItems: 10
+            description: Stop sequences
+            example: ["Human:", "Assistant:"]
+        additionalProperties: false
+      prompts:
+        type: object
+        properties:
+          system:
+            type: string
+            maxLength: 20000
+            description: System prompt
+            example: "You are an expert software architect with 15 years of experience."
+          requirementsAnalysis:
+            type: string
+            maxLength: 20000
+            description: Requirements analysis prompt
+            example: "Analyze the following requirements and provide architectural recommendations."
+          codeGeneration:
+            type: string
+            maxLength: 20000
+            description: Code generation prompt
+            example: "Generate production-ready code based on the following specification."
+          architectureReview:
+            type: string
+            maxLength: 20000
+            description: Architecture review prompt
+            example: "Review the following architecture and provide feedback."
+        additionalProperties: false
+      validation:
+        type: object
+        properties:
+          enabled:
+            type: boolean
+            description: Whether validation is enabled
+            example: true
+          rules:
+            type: array
+            items:
+              type: string
+              maxLength: 1000
+            description: Validation rules
+            example: ["No hardcoded secrets", "Follow naming conventions"]
+          maxComplexity:
+            type: number
+            format: float
+            minimum: 0
+            description: Maximum code complexity
+            example: 10.0
+          requireTests:
+            type: boolean
+            description: Whether tests are required
+            example: true
+        additionalProperties: false
+    additionalProperties: false
+
+# Validation constraints and business rules
+validationRules:
+  - rule: "AI analysis must have valid project ID"
+    constraint: "analysis.projectId EXISTS IN projects"
+  
+  - rule: "Code generation must have valid project ID"
+    constraint: "generation.projectId EXISTS IN projects"
+  
+  - rule: "Usage tracking must have valid user ID"
+    constraint: "usage.userId EXISTS IN users"
+  
+  - rule: "Daily usage limits cannot be exceeded"
+    constraint: "currentUsage.dailyRequests <= limits.dailyRequests"
+  
+  - rule: "Monthly usage limits cannot be exceeded"
+    constraint: "currentUsage.monthlyRequests <= limits.monthlyRequests"
+  
+  - rule: "Token usage must be positive"
+    constraint: "tokensUsed >= 0"
+  
+  - rule: "Cost must be positive"
+    constraint: "cost >= 0"
+  
+  - rule: "Processing time must be positive"
+    constraint: "processingTime >= 0"
+  
+  - rule: "Confidence score must be between 0 and 1"
+    constraint: "confidenceScore >= 0 AND confidenceScore <= 1"
+  
+  - rule: "Temperature must be between 0 and 1"
+    constraint: "temperature >= 0 AND temperature <= 1"
+
+# Common patterns and examples
+examples:
+  # Example AI analysis request
+  CreateAnalysisRequest:
+    projectId: "456e7890-e12b-34d5-a789-426614174001"
+    analysisType: "requirements"
+    inputData:
+      requirements: "Build a REST API for e-commerce with user authentication, product catalog, shopping cart, and payment processing"
+      context:
+        budget: "medium"
+        timeline: "3 months"
+        team_size: 5
+        preferred_technologies: ["Node.js", "PostgreSQL", "Redis"]
+        constraints: ["Must be cloud-native", "GDPR compliant"]
+
+  # Example code generation request
+  CreateGenerationRequest:
+    projectId: "456e7890-e12b-34d5-a789-426614174001"
+    generationType: "service"
+    specification:
+      service_name: "user-service"
+      description: "User management service with authentication"
+      endpoints:
+        - path: "/users"
+          method: "GET"
+          description: "Get all users"
+          parameters:
+            - name: "limit"
+              type: "integer"
+              required: false
+            - name: "offset"
+              type: "integer"
+              required: false
+        - path: "/users/{id}"
+          method: "GET"
+          description: "Get user by ID"
+          parameters:
+            - name: "id"
+              type: "uuid"
+              required: true
+        - path: "/users"
+          method: "POST"
+          description: "Create new user"
+          body:
+            type: "object"
+            properties:
+              email:
+                type: "string"
+                format: "email"
+              password:
+                type: "string"
+                minLength: 8
+              name:
+                type: "string"
+      database:
+        type: "postgresql"
+        tables:
+          - name: "users"
+            columns:
+              - name: "id"
+                type: "uuid"
+                primary_key: true
+              - name: "email"
+                type: "varchar(255)"
+                unique: true
+              - name: "password_hash"
+                type: "varchar(255)"
+              - name: "name"
+                type: "varchar(255)"
+              - name: "created_at"
+                type: "timestamp"
+              - name: "updated_at"
+                type: "timestamp"
+      framework: "express"
+      authentication: "jwt"
+      validation: "joi"
+      testing: "jest"
+
+  # Example recommendation
+  RecommendationExample:
+    title: "Implement API Gateway Pattern"
+    description: "Use an API Gateway to handle cross-cutting concerns like authentication, rate limiting, and request routing"
+    priority: "high"
+    category: "architecture"
+    impact: "high"
+    implementationEffort: "medium"
+    estimatedCostSavings: 2000.0
+    estimatedTimeSavings: 20
+    risks: ["Single point of failure", "Increased latency"]
+    benefits: ["Centralized security", "Better monitoring", "Simplified client integration"]
+    technicalDetails:
+      patterns: ["API Gateway", "Backend for Frontend"]
+      tools: ["Kong", "AWS API Gateway", "Nginx"]
+      considerations: ["Rate limiting", "Caching", "SSL termination"]
+    resources:
+      - title: "API Gateway Pattern"
+        url: "https://microservices.io/patterns/apigateway.html"
+        type: "documentation"
+      - title: "Building Microservices"
+        url: "https://www.oreilly.com/library/view/building-microservices/9781491950340/"
+        type: "book"
+
+  # Example usage tracking
+  UsageTrackingExample:
+    userId: "456e7890-e12b-34d5-a789-426614174001"
+    organizationId: "789e1234-e56f-78d9-a012-426614174002"
+    operation: "project_analysis"
+    tokensUsed: 2500
+    cost: 0.05
+    responseTime: 3.2
+    status: "success"
+    metadata:
+      model: "claude-3-sonnet-20240229"
+      region: "us-east-1"
+      userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+      ipAddress: "192.168.1.100"
+      sessionId: "sess_123456789"
+    timestamp: "2025-01-18T10:30:00.000Z"
+    date: "2025-01-18"
+    billingCycle: "2025-01"
