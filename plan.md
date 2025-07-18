@@ -13,7 +13,7 @@ Implementation plan for Skafu MVP focusing on the **Observability Domain** with 
 - **Security**: Full Cognito authentication, IAM roles, encryption, validation
 - **Monitoring**: Complete CloudWatch, X-Ray, structured logging, alerts
 - **CI/CD**: Full GitHub Actions pipeline with Git Flow (develop → main)
-- **Data Access**: Event sourcing with DynamoDB event store and CQRS pattern
+- **Data Access**: Event sourcing with DynamoDB event store and CQRS pattern (for other domains and error analytics, not for core observability data retrieval)
 
 ### 🚧 **What We're Stubbing:**
 - **Domains**: Project Management, Template Management, AI Integration, GitHub Integration
@@ -128,16 +128,14 @@ implementation/
   - [x] Implement EventPublisher with EventBridge integration
   - [x] Create AggregateRoot base class with event sourcing
   - [x] Implement Repository pattern for aggregate persistence
-  - [x] Create domain models (Metric, Alert, SecurityEvent, SystemHealth)
+  - [x] Create domain models (Metric, Alert, SecurityEvent, SystemHealth) - *Note: For Observability, these are primarily for internal representation before direct AWS service calls, not for persistent storage.*
   - [x] Build AWS Powertools integration layer
   - [x] Implement correlation IDs and structured logging
 
 - [x] **1.4 Observability Domain Foundation**
-  - [x] Create metric collection Lambda function
-  - [x] Implement Step Functions for read model updates
-  - [x] Set up DynamoDB read model tables
-  - [x] Configure API Gateway POST /api/v1/observability/metrics
-  - [x] Implement event sourcing pattern in Lambda function
+  - [x] Create Lambda functions for direct AWS monitoring service interaction (e.g., CloudWatch, X-Ray)
+  - [x] Configure API Gateway endpoints for observability data retrieval (e.g., /api/v1/observability/metrics, /api/v1/observability/traces)
+  - [x] Implement minimal data reformatting for UI consumption within Lambda functions
   - [x] Add comprehensive error handling and validation
   - [x] Integrate AWS Powertools for observability
 
@@ -174,12 +172,11 @@ implementation/
 
 #### **Implementation Tasks:**
 - [ ] **2.1 Observability Domain APIs**
-  - [ ] Implement metrics collection endpoint
-  - [ ] Implement metrics query endpoint
-  - [ ] Implement alert management endpoints
-  - [ ] Implement dashboard data endpoints
-  - [ ] Implement security events endpoint
-  - [ ] Implement health check endpoint
+  - [ ] Implement metrics query endpoint (direct CloudWatch GetMetricData/ListMetrics)
+  - [ ] Implement traces query endpoint (direct X-Ray GetTraceSummaries/GetBatchTraceDetails)
+  - [ ] Implement logs query endpoint (direct CloudWatch Logs GetQueryResults/StartQuery)
+  - [ ] Implement alert management endpoints (direct CloudWatch PutMetricAlarm/DescribeAlarms)
+  - [ ] Implement security events endpoint (querying DynamoDB ErrorAnalyticsTable)
   - [ ] Add comprehensive error handling
   - [ ] Implement request validation
 
@@ -257,7 +254,6 @@ implementation/
   - [ ] Implement real-time metrics dashboard
   - [ ] Implement alert creation and management
   - [ ] Implement security event visualization
-  - [ ] Implement system health monitoring
   - [ ] Add data visualization components
   - [ ] Implement real-time updates
   - [ ] Add filtering and search capabilities
@@ -315,7 +311,7 @@ implementation/
   - [ ] Implement structured logging with correlation IDs
   - [ ] Set up system and business alerts
   - [ ] Configure security event monitoring
-  - [ ] Implement health check endpoints
+  s
   - [ ] Set up log aggregation and analysis
 
 - [ ] **4.3 Integration Testing**

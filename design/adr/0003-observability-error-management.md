@@ -155,7 +155,6 @@ class ErrorHandler:
 ├── /metrics                 # CloudWatch Metrics data
 ├── /traces                  # X-Ray trace analysis
 ├── /errors                  # Error events from Error Bus
-├── /health                  # Service health status
 ├── /dashboards             # Custom dashboard data
 │
 ├── /lambda                  # Lambda function metrics
@@ -178,35 +177,7 @@ class ObservabilityService:
         self.dynamodb = boto3.resource('dynamodb')
         self._init_other_clients()
     
-    @tracer.capture_method
-    def get_service_health(self, service_name: str) -> Dict[str, Any]:
-        """Get comprehensive health status for a service"""
-        
-        # Get Lambda metrics
-        lambda_health = self._get_lambda_health(service_name)
-        
-        # Get API Gateway metrics
-        api_health = self._get_api_health(service_name)
-        
-        # Get error rate from Error Bus
-        error_rate = self._get_error_rate(service_name)
-        
-        # Calculate overall health score
-        health_score = self._calculate_health_score(
-            lambda_health, api_health, error_rate
-        )
-        
-        return {
-            'service': service_name,
-            'status': self._get_status_from_score(health_score),
-            'healthScore': health_score,
-            'components': {
-                'lambda': lambda_health,
-                'api': api_health,
-                'errorRate': error_rate
-            },
-            'lastChecked': datetime.utcnow().isoformat()
-        }
+    
     
     @tracer.capture_method
     def get_error_analytics(self, time_range: str, filters: Dict) -> Dict[str, Any]:
@@ -268,9 +239,7 @@ def lambda_handler(event, context):
         params = event.get('queryStringParameters', {}) or {}
         
         # Route to appropriate handler
-        if path == '/api/observability/health':
-            result = service.get_service_health(params.get('service', 'all'))
-        elif path == '/api/observability/errors':
+        if path == '/api/observability/errors':
             result = service.get_error_analytics(
                 time_range=params.get('timeRange', '1h'),
                 filters=params
@@ -314,63 +283,7 @@ def lambda_handler(event, context):
 
 ```typescript
 // Redux slice for observability
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { apiClient } from '../utils/apiClient';
 
-// Fetch service health
-export const fetchServiceHealth = createAsyncThunk(
-  'observability/fetchHealth',
-  async (serviceName?: string) => {
-    const response = await apiClient.get('/api/observability/health', {
-      params: { service: serviceName || 'all' }
-    });
-    return response.data;
-  }
-);
-
-// Fetch error analytics
-export const fetchErrorAnalytics = createAsyncThunk(
-  'observability/fetchErrors',
-  async (params: {
-    timeRange?: string;
-    service?: string;
-    severity?: string;
-    correlationId?: string;
-  }) => {
-    const response = await apiClient.get('/api/observability/errors', { params });
-    return response.data;
-  }
-);
-
-// React component example
-function ServiceHealthDashboard() {
-  const dispatch = useAppDispatch();
-  const { health, loading } = useAppSelector(state => state.observability);
-  
-  useEffect(() => {
-    // Fetch health data every 30 seconds
-    const fetchHealth = () => dispatch(fetchServiceHealth());
-    fetchHealth();
-    
-    const interval = setInterval(fetchHealth, 30000);
-    return () => clearInterval(interval);
-  }, [dispatch]);
-  
-  return (
-    <Container>
-      <Header variant="h1">Service Health Dashboard</Header>
-      <Grid gridDefinition={[{ colspan: 4 }, { colspan: 4 }, { colspan: 4 }]}>
-        {health.map(service => (
-          <ServiceHealthCard
-            key={service.name}
-            service={service}
-            onViewDetails={() => navigate(`/observability/service/${service.name}`)}
-          />
-        ))}
-      </Grid>
-    </Container>
-  );
-}
 ```
 
 ### Error Correlation and Debugging

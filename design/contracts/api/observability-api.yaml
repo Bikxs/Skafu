@@ -1,0 +1,644 @@
+openapi: 3.0.0
+info:
+  title: Skafu Observability API
+  version: 1.0.0
+  description: API for retrieving observability data directly from AWS monitoring services.
+servers:
+  - url: /api/v1/observability
+paths:
+  /metrics:
+    get:
+      summary: Retrieve CloudWatch metrics
+      description: Fetches metric data directly from AWS CloudWatch using GetMetricData.
+      parameters:
+        - name: namespace
+          in: query
+          required: true
+          schema:
+            type: string
+          description: The namespace of the metric (e.g., AWS/Lambda, AWS/EC2).
+        - name: metricName
+          in: query
+          required: true
+          schema:
+            type: string
+          description: The name of the metric (e.g., Invocations, CPUUtilization).
+        - name: startTime
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+          description: The start time for the metrics data (ISO 8601 format).
+        - name: endTime
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+          description: The end time for the metrics data (ISO 8601 format).
+        - name: period
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 300
+          description: The granularity of the returned data, in seconds.
+        - name: stat
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [Average, Sum, Maximum, Minimum, SampleCount]
+            default: Average
+          description: The statistic to apply to the metric data.
+        - name: dimensions
+          in: query
+          required: false
+          schema:
+            type: string
+            format: json
+          description: JSON string of metric dimensions.
+      responses:
+        '200':
+          description: Successfully retrieved metrics data.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  MetricDataResults:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        Id:
+                          type: string
+                        Label:
+                          type: string
+                        Timestamps:
+                          type: array
+                          items:
+                            type: string
+                            format: date-time
+                        Values:
+                          type: array
+                          items:
+                            type: number
+                        StatusCode:
+                          type: string
+                  Messages:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        Code:
+                          type: string
+                        Value:
+                          type: string
+              example:
+                MetricDataResults:
+                  - Id: "m1"
+                    Label: "Invocations"
+                    Timestamps:
+                      - "2025-01-01T10:00:00Z"
+                      - "2025-01-01T10:05:00Z"
+                    Values:
+                      - 123.0
+                      - 125.0
+                    StatusCode: "Complete"
+                Messages: []
+        '400':
+          description: Invalid request parameters.
+        '500':
+          description: Internal server error.
+
+  /traces:
+    get:
+      summary: Retrieve X-Ray trace summaries
+      description: Fetches trace summaries directly from AWS X-Ray using GetTraceSummaries.
+      parameters:
+        - name: startTime
+          in: query
+          required: true
+          schema:
+            type: number
+            format: float
+          description: The start time for the traces data (Unix epoch seconds).
+        - name: endTime
+          in: query
+          required: true
+          schema:
+            type: number
+            format: float
+          description: The end time for the traces data (Unix epoch seconds).
+        - name: filterExpression
+          in: query
+          required: false
+          schema:
+            type: string
+          description: An X-Ray filter expression to refine the results.
+        - name: nextToken
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Token for pagination.
+      responses:
+        '200':
+          description: Successfully retrieved trace summaries.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  TraceSummaries:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        Id: { type: string }
+                        Duration: { type: number }
+                        ResponseTime: { type: number }
+                        HasError: { type: boolean }
+                        HasFault: { type: boolean }
+                        HasThrottle: { type: boolean }
+                        IsPartial: { type: boolean }
+                        Annotations: { type: object }
+                        ServiceIds: { type: array, items: { type: object } }
+                        ResourceARNs: { type: array, items: { type: object } }
+                        Users: { type: array, items: { type: object } }
+                        Edges: { type: array, items: { type: object } }
+                        Origin: { type: string }
+                        Http: { type: object }
+                        MatchedEventTime: { type: string, format: date-time }
+                  NextToken:
+                    type: string
+              example:
+                TraceSummaries:
+                  - Id: "1-5f9f1b0e-1c2d3e4f5a6b7c8d9e0f1a2b"
+                    Duration: 0.123
+                    ResponseTime: 0.123
+                    HasError: false
+                    HasFault: false
+                    HasThrottle: false
+                    IsPartial: false
+                    Annotations: {}
+                    ServiceIds: []
+                    ResourceARNs: []
+                    Users: []
+                    Edges: []
+                    Origin: "AWS::Lambda::Function"
+                    Http: {}
+                    MatchedEventTime: "2025-01-01T10:00:00Z"
+                NextToken: "somePaginationToken"
+        '400':
+          description: Invalid request parameters.
+        '500':
+          description: Internal server error.
+
+  /logs:
+    get:
+      summary: Query CloudWatch Logs
+      description: Initiates a CloudWatch Logs Insights query and retrieves its results.
+      parameters:
+        - name: logGroupNames
+          in: query
+          required: true
+          schema:
+            type: string
+            format: csv
+          description: Comma-separated list of CloudWatch Log Group names to query.
+        - name: queryString
+          in: query
+          required: true
+          schema:
+            type: string
+          description: The CloudWatch Logs Insights query string.
+        - name: startTime
+          in: query
+          required: true
+          schema:
+            type: number
+            format: float
+          description: The start time for the logs data (Unix epoch seconds).
+        - name: endTime
+          in: query
+          required: true
+          schema:
+            type: number
+            format: float
+          description: The end time for the logs data (Unix epoch seconds).
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1000
+          description: The maximum number of log events to return.
+      responses:
+        '200':
+          description: Successfully retrieved log query results.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          field: { type: string }
+                          value: { type: string }
+                  statistics:
+                    type: object
+                    properties:
+                      recordsMatched: { type: number }
+                      recordsScanned: { type: number }
+                      bytesProcessed: { type: number }
+                  status:
+                    type: string
+                  ResponseMetadata:
+                    type: object # Standard Boto3 response metadata
+              example:
+                results:
+                  - - field: "@timestamp"
+                      value: "2025-01-01 10:00:00.000"
+                    - field: "@message"
+                      value: "Log entry 1"
+                statistics:
+                  recordsMatched: 2
+                  recordsScanned: 10
+                  bytesProcessed: 1024
+                status: "Complete"
+                ResponseMetadata: {}
+        '400':
+          description: Invalid request parameters.
+        '500':
+          description: Internal server error.
+
+  /users:
+    get:
+      summary: Retrieve Cognito User Pool users
+      description: Fetches user data directly from AWS Cognito User Pools using ListUsers.
+      parameters:
+        - name: userPoolId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: The ID of the Cognito User Pool.
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 60
+          description: Maximum number of users to return.
+        - name: paginationToken
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Token for pagination.
+        - name: filter
+          in: query
+          required: false
+          schema:
+            type: string
+          description: A filter string for the ListUsers API (e.g., 'username = "testuser"').
+      responses:
+        '200':
+          description: Successfully retrieved user data.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  Users:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        Username: { type: string }
+                        Attributes:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              Name: { type: string }
+                              Value: { type: string }
+                        UserCreateDate: { type: string, format: date-time }
+                        UserLastModifiedDate: { type: string, format: date-time }
+                        Enabled: { type: boolean }
+                        UserStatus: { type: string }
+                  PaginationToken:
+                    type: string
+              example:
+                Users:
+                  - Username: "testuser1"
+                    Attributes:
+                      - Name: "email"
+                        Value: "test1@example.com"
+                    UserCreateDate: "2025-01-01T10:00:00Z"
+                    UserLastModifiedDate: "2025-01-01T10:00:00Z"
+                    Enabled: true
+                    UserStatus: "CONFIRMED"
+                  - Username: "testuser2"
+                    Attributes:
+                      - Name: "email"
+                        Value: "test2@example.com"
+                    UserCreateDate: "2025-01-02T11:00:00Z"
+                    UserLastModifiedDate: "2025-01-02T11:00:00Z"
+                    Enabled: true
+                    UserStatus: "CONFIRMED"
+                PaginationToken: "anotherPaginationToken"
+        '400':
+          description: Invalid request parameters.
+        '500':
+          description: Internal server error.
+
+  /finance/cost:
+    get:
+      summary: Retrieve AWS Cost and Usage data
+      description: Fetches cost and usage data directly from AWS Cost Explorer using GetCostAndUsage.
+      parameters:
+        - name: timePeriodStart
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          description: The start date for the cost data (YYYY-MM-DD).
+        - name: timePeriodEnd
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          description: The end date for the cost data (YYYY-MM-DD).
+        - name: granularity
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [DAILY, MONTHLY, HOURLY]
+          description: The granularity of the cost data.
+        - name: metrics
+          in: query
+          required: true
+          schema:
+            type: string
+            format: csv
+          description: Comma-separated list of cost metrics (e.g., BlendedCost, UnblendedCost, UsageQuantity).
+        - name: groupBy
+          in: query
+          required: false
+          schema:
+            type: string
+            format: json
+          description: JSON string of groups to aggregate by (e.g., '[{"Type": "DIMENSION", "Key": "SERVICE"}]').
+        - name: filter
+          in: query
+          required: false
+          schema:
+            type: string
+            format: json
+          description: JSON string of a filter expression for the cost data.
+        - name: nextPageToken
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Token for pagination.
+      responses:
+        '200':
+          description: Successfully retrieved cost data.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ResultsByTime:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        TimePeriod: { type: object, properties: { Start: { type: string }, End: { type: string } } }
+                        Total: { type: object }
+                        Groups: { type: array, items: { type: object } }
+                        Estimated: { type: boolean }
+                  DimensionValueAttributes: { type: array, items: { type: object } }
+                  GroupDefinitions: { type: array, items: { type: object } }
+                  NextPageToken: { type: string }
+              example:
+                ResultsByTime:
+                  - TimePeriod:
+                      Start: "2025-06-01"
+                      End: "2025-07-01"
+                    Total:
+                      BlendedCost:
+                        Amount: "450.00"
+                        Unit: "USD"
+                    Groups: []
+                    Estimated: false
+                DimensionValueAttributes: []
+                GroupDefinitions: []
+                NextPageToken: ""
+        '400':
+          description: Invalid request parameters.
+        '500':
+          description: Internal server error.
+
+  /finance/forecast:
+    get:
+      summary: Retrieve AWS Cost Forecast data
+      description: Fetches cost forecast data directly from AWS Cost Explorer using GetCostForecast.
+      parameters:
+        - name: timePeriodStart
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          description: The start date for the forecast (YYYY-MM-DD).
+        - name: timePeriodEnd
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          description: The end date for the forecast (YYYY-MM-DD).
+        - name: granularity
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [DAILY, MONTHLY]
+          description: The granularity of the forecast.
+        - name: metric
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [BLENDED_COST, UNBLENDED_COST, AMORTIZED_COST]
+          description: The metric for the forecast.
+        - name: filter
+          in: query
+          required: false
+          schema:
+            type: string
+            format: json
+          description: JSON string of a filter expression for the forecast.
+      responses:
+        '200':
+          description: Successfully retrieved cost forecast data.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ForecastResultsByTime:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        TimePeriod: { type: object, properties: { Start: { type: string }, End: { type: string } } }
+                        MeanValue: { type: string }
+                        PredictionIntervalLowerBound: { type: string }
+                        PredictionIntervalUpperBound: { type: string }
+                  Total: { type: object }
+              example:
+                ForecastResultsByTime:
+                  - TimePeriod:
+                      Start: "2025-07-18"
+                      End: "2025-07-19"
+                    MeanValue: "10.50"
+                    PredictionIntervalLowerBound: "9.00"
+                    PredictionIntervalUpperBound: "12.00"
+                Total:
+                  Amount: "123.45"
+                  Unit: "USD"
+        '400':
+          description: Invalid request parameters.
+        '500':
+          description: Internal server error.
+
+  /alarms:
+    get:
+      summary: Retrieve CloudWatch Alarms
+      description: Fetches CloudWatch Alarms directly from AWS CloudWatch using DescribeAlarms.
+      parameters:
+        - name: alarmNames
+          in: query
+          required: false
+          schema:
+            type: string
+            format: csv
+          description: Comma-separated list of alarm names to retrieve.
+        - name: alarmNamePrefix
+          in: query
+          required: false
+          schema:
+            type: string
+          description: A prefix for alarm names to retrieve.
+        - name: stateValue
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [OK, ALARM, INSUFFICIENT_DATA]
+          description: The state value to filter alarms by.
+        - name: actionPrefix
+          in: query
+          required: false
+          schema:
+            type: string
+          description: A prefix for alarm actions to retrieve.
+        - name: maxRecords
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 100
+          description: The maximum number of alarms to retrieve.
+        - name: nextToken
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Token for pagination.
+      responses:
+        '200':
+          description: Successfully retrieved CloudWatch Alarms.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  MetricAlarms:
+                    type: array
+                    items:
+                      type: object # Reflects the structure of a CloudWatch MetricAlarm
+                      properties:
+                        AlarmName: { type: string }
+                        AlarmArn: { type: string }
+                        AlarmDescription: { type: string }
+                        AlarmConfigurationUpdatedTimestamp: { type: string, format: date-time }
+                        ActionsEnabled: { type: boolean }
+                        OKActions: { type: array, items: { type: string } }
+                        AlarmActions: { type: array, items: { type: string } }
+                        InsufficientDataActions: { type: array, items: { type: string } }
+                        StateValue: { type: string, enum: [OK, ALARM, INSUFFICIENT_DATA] }
+                        StateReason: { type: string }
+                        StateReasonData: { type: string }
+                        StateUpdatedTimestamp: { type: string, format: date-time }
+                        MetricName: { type: string }
+                        Namespace: { type: string }
+                        Statistic: { type: string }
+                        Dimensions: { type: array, items: { type: object, properties: { Name: { type: string }, Value: { type: string } } } }
+                        Period: { type: integer }
+                        Unit: { type: string }
+                        EvaluationPeriods: { type: integer }
+                        DatapointsToAlarm: { type: integer }
+                        Threshold: { type: number }
+                        ComparisonOperator: { type: string }
+                        TreatMissingData: { type: string }
+                        EvaluateLowSampleCountPercentile: { type: string }
+                        Metrics: { type: array, items: { type: object } }
+                        Tags: { type: array, items: { type: object, properties: { Key: { type: string }, Value: { type: string } } } }
+                  CompositeAlarms:
+                    type: array
+                    items:
+                      type: object # Reflects the structure of a CloudWatch CompositeAlarm
+                      properties:
+                        AlarmName: { type: string }
+                        AlarmArn: { type: string }
+                        AlarmDescription: { type: string }
+                        AlarmConfigurationUpdatedTimestamp: { type: string, format: date-time }
+                        ActionsEnabled: { type: boolean }
+                        OKActions: { type: array, items: { type: string } }
+                        AlarmActions: { type: array, items: { type: string } }
+                        InsufficientDataActions: { type: array, items: { type: string } }
+                        StateValue: { type: string, enum: [OK, ALARM, INSUFFICIENT_DATA] }
+                        StateReason: { type: string }
+                        StateReasonData: { type: string }
+                        StateUpdatedTimestamp: { type: string, format: date-time }
+                        AlarmRule: { type: string }
+                        Tags: { type: array, items: { type: object, properties: { Key: { type: string }, Value: { type: string } } } }
+                  NextToken:
+                    type: string
+              example:
+                MetricAlarms:
+                  - AlarmName: "ExampleMetricAlarm"
+                    AlarmArn: "arn:aws:cloudwatch:us-east-1:123456789012:alarm:ExampleMetricAlarm"
+                    StateValue: "OK"
+                CompositeAlarms: []
+                NextToken: ""
+        '400':
+          description: Invalid request parameters.
+        '500':
+          description: Internal server error.
