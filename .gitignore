@@ -251,10 +251,16 @@ terraform.tfvars
 
 # IDE
 .idea/
-.vscode/
 *.swp
 *.swo
 *~
+
+# VSCode
+# Ignore VS Code workspace settings, except for recommended extensions and settings
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
 
 # OS
 .DS_Store
