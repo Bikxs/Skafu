@@ -13,7 +13,7 @@ Implementation plan for Skafu MVP focusing on the **Observability Domain** with 
 - **Security**: Full Cognito authentication, IAM roles, encryption, validation
 - **Monitoring**: Complete CloudWatch, X-Ray, structured logging, alerts
 - **CI/CD**: Full GitHub Actions pipeline with Git Flow (develop → main)
-- **Data Access**: Simplified pattern (direct DynamoDB) instead of event sourcing
+- **Data Access**: Event sourcing with DynamoDB event store and CQRS pattern
 
 ### 🚧 **What We're Stubbing:**
 - **Domains**: Project Management, Template Management, AI Integration, GitHub Integration
@@ -25,47 +25,110 @@ Implementation plan for Skafu MVP focusing on the **Observability Domain** with 
 ### **Phase 1: Foundation & Infrastructure (Week 1-2)**
 
 #### **Pre-Implementation Requirements:**
-- [ ] **Design Review**: Complete detailed review of infrastructure architecture
-- [ ] **Q&A Session**: Conduct comprehensive Q&A session (up to 20 questions) covering:
-  - [ ] AWS infrastructure components and configuration
-  - [ ] API Gateway setup and routing
-  - [ ] DynamoDB table design and access patterns
-  - [ ] Cognito authentication flow
-  - [ ] IAM roles and permissions
-  - [ ] CloudWatch and X-Ray configuration
-  - [ ] CI/CD pipeline structure
-  - [ ] Environment configuration (dev/prod)
-  - [ ] Security measures and encryption
-  - [ ] Monitoring and alerting setup
-  - [ ] **Final Question**: Anything else to add before implementation?
+- [x] **Design Review**: Complete detailed review of infrastructure architecture
+- [x] **Q&A Session**: Conduct comprehensive Q&A session (20 questions) covering:
+  - [x] AWS infrastructure components and configuration
+  - [x] API Gateway setup and routing
+  - [x] DynamoDB table design and access patterns
+  - [x] Cognito authentication flow
+  - [x] IAM roles and permissions
+  - [x] CloudWatch and X-Ray configuration
+  - [x] CI/CD pipeline structure
+  - [x] Environment configuration (dev/prod)
+  - [x] Security measures and encryption
+  - [x] Monitoring and alerting setup
+  - [x] Folder structure and code organization
+  - [x] **Final Question**: Architecture review and clarifications
+
+#### **Architecture Decisions from Q&A:**
+- **SAM Templates**: Nested stacks (shared resources + domain-specific)
+- **EventBridge**: Custom "skafu-events" bus
+- **API Gateway**: Single gateway with `/api/v1/` prefix
+- **Lambda Functions**: One function per command/query operation
+- **Authentication**: Cognito User Pool with Groups for RBAC
+- **Configuration**: SAM parameters + environment variables
+- **Monitoring**: Full X-Ray tracing enabled
+- **IAM**: Fine-grained roles per Lambda function
+- **Read Models**: AppSync GraphQL via Amplify Gen2
+- **Event Consumers**: Step Functions orchestrate read model updates
+- **Error Handling**: Dedicated error bus for centralized error handling
+- **Local Development**: SAM local only
+- **Naming**: `skafu-{environment}-{domain}-{resource}`
+- **Logging**: AWS Powertools for Python
+- **Performance**: Start with on-demand Lambda
+
+#### **Folder Structure:**
+```
+implementation/
+├── domains/
+│   ├── observability/
+│   │   ├── backend/
+│   │   │   ├── src/
+│   │   │   └── tests/
+│   │   ├── frontend/
+│   │   │   ├── components/
+│   │   │   ├── pages/
+│   │   │   ├── store/
+│   │   │   └── __tests__/
+│   │   └── template.yaml
+│   ├── project-management/
+│   └── template-management/
+├── shared/
+│   ├── infrastructure/
+│   │   ├── root-template.yaml
+│   │   ├── shared-resources.yaml
+│   │   └── parameters/
+│   ├── libraries/
+│   ├── types/
+│   ├── frontend/
+│   │   ├── components/
+│   │   ├── types/
+│   │   └── utils/
+│   └── testing/
+│       ├── fixtures/
+│       ├── mocks/
+│       └── utilities/
+├── frontend/
+│   ├── src/
+│   ├── amplify/
+│   └── package.json
+├── tests/
+│   ├── e2e/
+│   ├── integration/
+│   └── performance/
+└── template.yaml
+```
 
 #### **Implementation Tasks:**
 - [ ] **1.1 Project Structure & Setup**
-  - [ ] Create project directory structure
-  - [ ] Set up Python virtual environment
+  - [ ] Create domain-first folder structure
+  - [ ] Set up Python virtual environment for backend
   - [ ] Initialize React application with TypeScript
   - [ ] Configure development tools (ESLint, Prettier, etc.)
-  - [ ] Set up testing frameworks
+  - [ ] Set up testing frameworks for each domain
 
 - [ ] **1.2 AWS Infrastructure (SAM Templates)**
-  - [ ] Create main SAM template
-  - [ ] Configure API Gateway with authentication
-  - [ ] Set up Lambda function templates
-  - [ ] Configure DynamoDB tables
-  - [ ] Set up Cognito user pools and identity pools
+  - [ ] Create root SAM template with nested stacks
+  - [ ] Create shared resources template (EventBridge, Cognito, etc.)
+  - [ ] Create observability domain template
+  - [ ] Configure API Gateway with `/api/v1/` prefix and auth
+  - [ ] Set up DynamoDB event store with correct schema
+  - [ ] Configure custom "skafu-events" EventBridge bus
+  - [ ] Set up Cognito User Pool with Groups for RBAC
+  - [ ] Configure fine-grained IAM roles per Lambda function
+  - [ ] Set up full X-Ray tracing on all functions
+  - [ ] Configure AWS Secrets Manager integration
+  - [ ] Set up dedicated error bus for centralized error handling
   - [ ] Configure CloudWatch dashboards and alarms
-  - [ ] Set up X-Ray tracing
-  - [ ] Configure Secrets Manager
-  - [ ] Create IAM roles and policies
-  - [ ] Set up environment parameters
+  - [ ] Set up environment parameters with SAM + env vars
 
 - [ ] **1.3 CI/CD Pipeline Setup**
-  - [ ] Create GitHub Actions workflows
-  - [ ] Set up develop branch workflow (CI)
-  - [ ] Set up main branch workflow (CD to production)
+  - [ ] Set up SAM Pipeline for backend deployment
+  - [ ] Configure GitHub Actions for frontend testing/validation
+  - [ ] Set up Amplify Deployment Manager for frontend
   - [ ] Configure quality gates (linting, testing, security)
   - [ ] Set up infrastructure validation
-  - [ ] Configure deployment approvals
+  - [ ] Configure deployment approvals for production
 
 - [ ] **Phase 1 Completion**
   - [ ] Write phase 1 implementation report
@@ -79,11 +142,12 @@ Implementation plan for Skafu MVP focusing on the **Observability Domain** with 
 - [ ] **Q&A Session**: Conduct comprehensive Q&A session (up to 20 questions) covering:
   - [ ] API endpoint design and validation
   - [ ] Data models for observability domain
-  - [ ] Event models and schemas
+  - [ ] Event models and schemas for event sourcing
+  - [ ] Event store design and aggregates
   - [ ] Authentication and authorization logic
   - [ ] Input validation and error handling
   - [ ] Rate limiting implementation
-  - [ ] Database access patterns
+  - [ ] Event store access patterns and read model updates
   - [ ] Logging and monitoring integration
   - [ ] Security measures and encryption
   - [ ] Stubbed domain API design
@@ -325,13 +389,14 @@ Implementation plan for Skafu MVP focusing on the **Observability Domain** with 
 - React 18 + TypeScript
 - Redux Toolkit + RTK Query
 - Cloudscape Design System
-- AWS Amplify for authentication
+- AWS Amplify Gen2 for GraphQL queries
 - Vite for build tooling
 
 ### **Backend**
 - Python 3.12 + FastAPI
 - AWS Lambda + API Gateway
-- DynamoDB for data storage
+- DynamoDB for event store and read models
+- EventBridge for event publishing
 - Cognito for authentication
 - CloudWatch for monitoring
 

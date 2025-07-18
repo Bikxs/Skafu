@@ -10,10 +10,10 @@ This document defines the deployment architecture for the Skafu platform, coveri
 
 ```yaml
 Infrastructure_Stack:
-  Primary_Tool: "AWS CDK (TypeScript)"
-  Backup_Tool: "Terraform"
+  Primary_Tool: "AWS SAM (YAML)"
+  Backup_Tool: "AWS CDK (TypeScript)"
   Version_Control: "Git"
-  State_Management: "AWS CDK Bootstrap"
+  State_Management: "CloudFormation"
   
   Stack_Organization:
     Foundation:
@@ -23,10 +23,9 @@ Infrastructure_Stack:
       - Route 53 Hosted Zones
     
     Platform:
-      - Application Load Balancers
       - API Gateway
       - Lambda Functions
-      - RDS Databases
+      - DynamoDB Tables
       - S3 Buckets
       - CloudFront Distributions
     
@@ -83,167 +82,198 @@ AWS_Account_Structure:
 ### Environment Configuration
 
 ```typescript
-// Environment configuration interface
-interface EnvironmentConfig {
-  name: string;
-  account: string;
-  region: string;
-  stage: 'development' | 'staging' | 'production';
+# Environment configuration structure
+EnvironmentConfig:
+  name: string
+  account: string
+  region: string
+  stage: 'development' | 'staging' | 'production'
   
-  networking: {
-    vpcId: string;
-    subnetIds: string[];
-    securityGroupIds: string[];
-  };
+  dynamodb:
+    billing_mode: 'PAY_PER_REQUEST' | 'PROVISIONED'
+    point_in_time_recovery: boolean
+    stream_enabled: boolean
+    deletion_protection: boolean
   
-  database: {
-    instanceClass: string;
-    allocatedStorage: number;
-    maxAllocatedStorage: number;
-    backupRetentionPeriod: number;
-    multiAZ: boolean;
-  };
+  lambda:
+    runtime: 'python3.12'
+    memory_size: number
+    timeout: number
+    reserved_concurrency?: number
+    environment_variables:
+      LOG_LEVEL: string
+      CORS_ORIGINS: string
   
-  lambda: {
-    runtime: 'nodejs18.x';
-    memorySize: number;
-    timeout: number;
-    reservedConcurrency?: number;
-  };
+  api_gateway:
+    cors_enabled: boolean
+    throttling_enabled: boolean
+    request_validation: boolean
+    auth_type: 'COGNITO_USER_POOLS'
   
-  monitoring: {
-    logRetentionDays: number;
-    metricsRetentionDays: number;
-    alertingEnabled: boolean;
-  };
+  cognito:
+    user_pool_name: string
+    client_name: string
+    password_policy:
+      minimum_length: number
+      require_uppercase: boolean
+      require_lowercase: boolean
+      require_numbers: boolean
+      require_symbols: boolean
+    
+  monitoring:
+    log_retention_days: number
+    metrics_retention_days: number
+    alerting_enabled: boolean
+    xray_tracing: boolean
   
-  security: {
-    encryptionEnabled: boolean;
-    kmsKeyId: string;
-    accessLogging: boolean;
-  };
-}
+  security:
+    encryption_enabled: boolean
+    kms_key_id: string
+    access_logging: boolean
 
-// Environment-specific configurations
-const environments: Record<string, EnvironmentConfig> = {
-  development: {
-    name: 'development',
-    account: '123456789012',
-    region: 'us-east-1',
-    stage: 'development',
+# Environment-specific configurations
+environments:
+  development:
+    name: 'development'
+    account: '123456789012'
+    region: 'us-east-1'
+    stage: 'development'
     
-    networking: {
-      vpcId: 'vpc-dev-12345',
-      subnetIds: ['subnet-dev-1', 'subnet-dev-2'],
-      securityGroupIds: ['sg-dev-app', 'sg-dev-db'],
-    },
+    dynamodb:
+      billing_mode: 'PAY_PER_REQUEST'
+      point_in_time_recovery: false
+      stream_enabled: true
+      deletion_protection: false
     
-    database: {
-      instanceClass: 'db.t3.micro',
-      allocatedStorage: 20,
-      maxAllocatedStorage: 100,
-      backupRetentionPeriod: 7,
-      multiAZ: false,
-    },
+    lambda:
+      runtime: 'python3.12'
+      memory_size: 512
+      timeout: 30
+      environment_variables:
+        LOG_LEVEL: 'DEBUG'
+        CORS_ORIGINS: 'http://localhost:3000'
     
-    lambda: {
-      runtime: 'nodejs18.x',
-      memorySize: 512,
-      timeout: 30,
-    },
+    api_gateway:
+      cors_enabled: true
+      throttling_enabled: false
+      request_validation: true
+      auth_type: 'COGNITO_USER_POOLS'
     
-    monitoring: {
-      logRetentionDays: 30,
-      metricsRetentionDays: 90,
-      alertingEnabled: false,
-    },
+    cognito:
+      user_pool_name: 'skafu-dev-users'
+      client_name: 'skafu-dev-client'
+      password_policy:
+        minimum_length: 8
+        require_uppercase: true
+        require_lowercase: true
+        require_numbers: true
+        require_symbols: false
     
-    security: {
-      encryptionEnabled: true,
-      kmsKeyId: 'arn:aws:kms:us-east-1:123456789012:key/dev-key',
-      accessLogging: true,
-    },
-  },
+    monitoring:
+      log_retention_days: 30
+      metrics_retention_days: 90
+      alerting_enabled: false
+      xray_tracing: true
+    
+    security:
+      encryption_enabled: true
+      kms_key_id: 'arn:aws:kms:us-east-1:123456789012:key/dev-key'
+      access_logging: true
   
-  staging: {
-    name: 'staging',
-    account: '123456789013',
-    region: 'us-east-1',
-    stage: 'staging',
+  staging:
+    name: 'staging'
+    account: '123456789013'
+    region: 'us-east-1'
+    stage: 'staging'
     
-    networking: {
-      vpcId: 'vpc-staging-12345',
-      subnetIds: ['subnet-staging-1', 'subnet-staging-2', 'subnet-staging-3'],
-      securityGroupIds: ['sg-staging-app', 'sg-staging-db'],
-    },
+    dynamodb:
+      billing_mode: 'PAY_PER_REQUEST'
+      point_in_time_recovery: true
+      stream_enabled: true
+      deletion_protection: true
     
-    database: {
-      instanceClass: 'db.t3.small',
-      allocatedStorage: 50,
-      maxAllocatedStorage: 200,
-      backupRetentionPeriod: 14,
-      multiAZ: true,
-    },
+    lambda:
+      runtime: 'python3.12'
+      memory_size: 1024
+      timeout: 60
+      environment_variables:
+        LOG_LEVEL: 'INFO'
+        CORS_ORIGINS: 'https://staging.skafu.com'
     
-    lambda: {
-      runtime: 'nodejs18.x',
-      memorySize: 1024,
-      timeout: 60,
-    },
+    api_gateway:
+      cors_enabled: true
+      throttling_enabled: true
+      request_validation: true
+      auth_type: 'COGNITO_USER_POOLS'
     
-    monitoring: {
-      logRetentionDays: 90,
-      metricsRetentionDays: 180,
-      alertingEnabled: true,
-    },
+    cognito:
+      user_pool_name: 'skafu-staging-users'
+      client_name: 'skafu-staging-client'
+      password_policy:
+        minimum_length: 12
+        require_uppercase: true
+        require_lowercase: true
+        require_numbers: true
+        require_symbols: true
     
-    security: {
-      encryptionEnabled: true,
-      kmsKeyId: 'arn:aws:kms:us-east-1:123456789013:key/staging-key',
-      accessLogging: true,
-    },
-  },
+    monitoring:
+      log_retention_days: 90
+      metrics_retention_days: 180
+      alerting_enabled: true
+      xray_tracing: true
+    
+    security:
+      encryption_enabled: true
+      kms_key_id: 'arn:aws:kms:us-east-1:123456789013:key/staging-key'
+      access_logging: true
   
-  production: {
-    name: 'production',
-    account: '123456789014',
-    region: 'us-east-1',
-    stage: 'production',
+  production:
+    name: 'production'
+    account: '123456789014'
+    region: 'us-east-1'
+    stage: 'production'
     
-    networking: {
-      vpcId: 'vpc-prod-12345',
-      subnetIds: ['subnet-prod-1', 'subnet-prod-2', 'subnet-prod-3'],
-      securityGroupIds: ['sg-prod-app', 'sg-prod-db'],
-    },
+    dynamodb:
+      billing_mode: 'PAY_PER_REQUEST'
+      point_in_time_recovery: true
+      stream_enabled: true
+      deletion_protection: true
     
-    database: {
-      instanceClass: 'db.r5.large',
-      allocatedStorage: 100,
-      maxAllocatedStorage: 1000,
-      backupRetentionPeriod: 30,
-      multiAZ: true,
-    },
+    lambda:
+      runtime: 'python3.12'
+      memory_size: 2048
+      timeout: 300
+      reserved_concurrency: 100
+      environment_variables:
+        LOG_LEVEL: 'INFO'
+        CORS_ORIGINS: 'https://skafu.com'
     
-    lambda: {
-      runtime: 'nodejs18.x',
-      memorySize: 2048,
-      timeout: 300,
-      reservedConcurrency: 100,
-    },
+    api_gateway:
+      cors_enabled: true
+      throttling_enabled: true
+      request_validation: true
+      auth_type: 'COGNITO_USER_POOLS'
     
-    monitoring: {
-      logRetentionDays: 365,
-      metricsRetentionDays: 730,
-      alertingEnabled: true,
-    },
+    cognito:
+      user_pool_name: 'skafu-prod-users'
+      client_name: 'skafu-prod-client'
+      password_policy:
+        minimum_length: 12
+        require_uppercase: true
+        require_lowercase: true
+        require_numbers: true
+        require_symbols: true
     
-    security: {
-      encryptionEnabled: true,
-      kmsKeyId: 'arn:aws:kms:us-east-1:123456789014:key/prod-key',
-      accessLogging: true,
-    },
-  },
-};
+    monitoring:
+      log_retention_days: 365
+      metrics_retention_days: 730
+      alerting_enabled: true
+      xray_tracing: true
+    
+    security:
+      encryption_enabled: true
+      kms_key_id: 'arn:aws:kms:us-east-1:123456789014:key/prod-key'
+      access_logging: true
 ```
 
 ### Environment Promotion
@@ -298,26 +328,58 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+      
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
           cache: 'npm'
       
-      - name: Install dependencies
-        run: npm ci
+      - name: Install Python dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
       
-      - name: Run tests
-        run: npm run test:ci
+      - name: Install Node.js dependencies
+        run: |
+          cd frontend
+          npm ci
+      
+      - name: Run Python tests
+        run: |
+          cd backend
+          pytest
+      
+      - name: Run Python linting
+        run: |
+          cd backend
+          black --check .
+          pylint src/
       
       - name: Run security scan
-        run: npm run security:scan
+        run: |
+          cd backend
+          bandit -r src/
       
-      - name: Run lint
-        run: npm run lint
+      - name: Run frontend tests
+        run: |
+          cd frontend
+          npm run test:ci
       
-      - name: Build application
-        run: npm run build
+      - name: Run frontend lint
+        run: |
+          cd frontend
+          npm run lint
+      
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm run build
 
   deploy-dev:
     needs: test
@@ -346,7 +408,9 @@ jobs:
       
       - name: Deploy to development
         run: |
-          npm run cdk:deploy -- --profile development
+          cd backend
+          sam build
+          sam deploy --config-env development
         env:
           STAGE: development
           AWS_ACCOUNT_ID: ${{ secrets.DEV_AWS_ACCOUNT_ID }}
@@ -378,7 +442,9 @@ jobs:
       
       - name: Deploy to staging
         run: |
-          npm run cdk:deploy -- --profile staging
+          cd backend
+          sam build
+          sam deploy --config-env staging
         env:
           STAGE: staging
           AWS_ACCOUNT_ID: ${{ secrets.STAGING_AWS_ACCOUNT_ID }}
@@ -415,7 +481,9 @@ jobs:
       
       - name: Deploy to production
         run: |
-          npm run cdk:deploy -- --profile production
+          cd backend
+          sam build
+          sam deploy --config-env production
         env:
           STAGE: production
           AWS_ACCOUNT_ID: ${{ secrets.PROD_AWS_ACCOUNT_ID }}
@@ -500,150 +568,337 @@ Deployment_Strategies:
       - Potential inconsistent experience
 ```
 
-## Container Strategy
+## Serverless Strategy
 
-### Docker Configuration
-
-```dockerfile
-# Multi-stage build for optimized production images
-FROM node:18-alpine AS builder
-
-WORKDIR /app
-
-# Copy package files
-COPY package*.json ./
-RUN npm ci --only=production
-
-# Copy source code
-COPY . .
-
-# Build application
-RUN npm run build
-
-# Production stage
-FROM node:18-alpine AS production
-
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S skafu -u 1001
-
-# Set working directory
-WORKDIR /app
-
-# Copy built application
-COPY --from=builder --chown=skafu:nodejs /app/dist ./dist
-COPY --from=builder --chown=skafu:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=skafu:nodejs /app/package*.json ./
-
-# Security hardening
-RUN apk --no-cache add dumb-init
-RUN apk --no-cache upgrade
-
-# Switch to non-root user
-USER skafu
-
-# Expose port
-EXPOSE 3000
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:3000/health || exit 1
-
-# Start application
-ENTRYPOINT ["dumb-init", "--"]
-CMD ["node", "dist/server.js"]
-```
-
-### Container Orchestration
+### SAM Template Configuration
 
 ```yaml
-# ECS Service Configuration
-ECS_Configuration:
-  Cluster:
-    name: "skafu-cluster"
-    capacity_providers: ["FARGATE", "FARGATE_SPOT"]
-    default_capacity_provider_strategy:
-      - capacity_provider: "FARGATE"
-        weight: 1
-        base: 2
-      - capacity_provider: "FARGATE_SPOT"
-        weight: 4
+# template.yaml
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'Skafu serverless application'
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Handler: app.lambda_handler
+    Timeout: 30
+    MemorySize: 512
+    Environment:
+      Variables:
+        POWERTOOLS_SERVICE_NAME: skafu
+        POWERTOOLS_METRICS_NAMESPACE: skafu
+        LOG_LEVEL: INFO
+    Tracing: Active
+    Layers:
+      - !Ref PowertoolsLayer
+
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues: [development, staging, production]
+    Default: development
   
-  Task_Definition:
-    family: "skafu-app"
-    network_mode: "awsvpc"
-    requires_compatibilities: ["FARGATE"]
-    cpu: "512"
-    memory: "1024"
-    execution_role_arn: "arn:aws:iam::account:role/ecsTaskExecutionRole"
-    task_role_arn: "arn:aws:iam::account:role/ecsTaskRole"
-    
-    container_definitions:
-      - name: "skafu-app"
-        image: "123456789012.dkr.ecr.us-east-1.amazonaws.com/skafu:latest"
-        port_mappings:
-          - container_port: 3000
-            protocol: "tcp"
-        
-        log_configuration:
-          log_driver: "awslogs"
-          options:
-            awslogs-group: "/ecs/skafu-app"
-            awslogs-region: "us-east-1"
-            awslogs-stream-prefix: "ecs"
-        
-        environment:
-          - name: "NODE_ENV"
-            value: "production"
-          - name: "PORT"
-            value: "3000"
-        
-        secrets:
-          - name: "DATABASE_URL"
-            value_from: "arn:aws:secretsmanager:us-east-1:account:secret:database-url"
-          - name: "JWT_SECRET"
-            value_from: "arn:aws:secretsmanager:us-east-1:account:secret:jwt-secret"
-        
-        health_check:
-          command: ["CMD-SHELL", "curl -f http://localhost:3000/health || exit 1"]
-          interval: 30
-          timeout: 10
-          retries: 3
-          start_period: 60
+  CorsOrigins:
+    Type: String
+    Default: "*"
+    Description: Allowed CORS origins
+
+Resources:
+  # API Gateway
+  SkafuApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref Environment
+      Cors:
+        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+        AllowOrigin: !Sub "'${CorsOrigins}'"
+      Auth:
+        DefaultAuthorizer: CognitoAuthorizer
+        Authorizers:
+          CognitoAuthorizer:
+            UserPoolArn: !GetAtt UserPool.Arn
+      GatewayResponses:
+        DEFAULT_4XX:
+          ResponseParameters:
+            Headers:
+              Access-Control-Allow-Origin: !Sub "'${CorsOrigins}'"
+        DEFAULT_5XX:
+          ResponseParameters:
+            Headers:
+              Access-Control-Allow-Origin: !Sub "'${CorsOrigins}'"
+      RequestValidator:
+        ValidateRequestBody: true
+        ValidateRequestParameters: true
+
+  # Lambda Functions
+  MetricsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/handlers/metrics/
+      Events:
+        GetMetrics:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SkafuApi
+            Path: /api/metrics
+            Method: get
+        CreateMetric:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SkafuApi
+            Path: /api/metrics
+            Method: post
+      Environment:
+        Variables:
+          METRICS_TABLE: !Ref MetricsTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MetricsTable
+
+  # DynamoDB Tables
+  MetricsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub 'skafu-metrics-${Environment}'
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+        - AttributeName: gsi1pk
+          AttributeType: S
+        - AttributeName: gsi1sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: GSI1
+          KeySchema:
+            - AttributeName: gsi1pk
+              KeyType: HASH
+            - AttributeName: gsi1sk
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      SSESpecification:
+        SSEEnabled: true
+      DeletionProtectionEnabled: !If 
+        - IsProduction
+        - true
+        - false
+
+  # Cognito User Pool
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub 'skafu-users-${Environment}'
+      UsernameAttributes:
+        - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireUppercase: true
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+      Schema:
+        - Name: email
+          AttributeDataType: String
+          Mutable: true
+          Required: true
+        - Name: name
+          AttributeDataType: String
+          Mutable: true
+          Required: true
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref UserPool
+      ClientName: !Sub 'skafu-client-${Environment}'
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      SupportedIdentityProviders:
+        - COGNITO
+      CallbackURLs:
+        - !Sub 'https://${Environment}.skafu.com/callback'
+      LogoutURLs:
+        - !Sub 'https://${Environment}.skafu.com/logout'
+      AllowedOAuthFlows:
+        - code
+      AllowedOAuthScopes:
+        - openid
+        - email
+        - profile
+      AllowedOAuthFlowsUserPoolClient: true
+
+  # Powertools Layer
+  PowertoolsLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: !Sub 'powertools-layer-${Environment}'
+      Description: AWS Lambda Powertools for Python
+      ContentUri: layers/powertools/
+      CompatibleRuntimes:
+        - python3.12
+      RetentionPolicy: Retain
+
+Conditions:
+  IsProduction: !Equals [!Ref Environment, production]
+
+Outputs:
+  ApiEndpoint:
+    Description: API Gateway endpoint URL
+    Value: !Sub 'https://${SkafuApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}'
+    Export:
+      Name: !Sub '${AWS::StackName}-ApiEndpoint'
   
-  Service:
-    name: "skafu-service"
-    cluster: "skafu-cluster"
-    task_definition: "skafu-app"
-    desired_count: 3
+  UserPoolId:
+    Description: Cognito User Pool ID
+    Value: !Ref UserPool
+    Export:
+      Name: !Sub '${AWS::StackName}-UserPoolId'
+  
+  UserPoolClientId:
+    Description: Cognito User Pool Client ID
+    Value: !Ref UserPoolClient
+    Export:
+      Name: !Sub '${AWS::StackName}-UserPoolClientId'
+```
+
+### SAM Configuration Management
+
+```yaml
+# samconfig.toml
+version = 0.1
+
+[default]
+[default.global.parameters]
+stack_name = "skafu"
+
+[default.build.parameters]
+cached = true
+parallel = true
+
+[default.validate.parameters]
+lint = true
+
+[default.deploy.parameters]
+capabilities = "CAPABILITY_IAM"
+confirm_changeset = true
+resolve_s3 = true
+fail_on_empty_changeset = false
+
+[development]
+[development.deploy.parameters]
+stack_name = "skafu-dev"
+parameter_overrides = [
+  "Environment=development",
+  "CorsOrigins=http://localhost:3000"
+]
+
+[staging]
+[staging.deploy.parameters]
+stack_name = "skafu-staging"
+parameter_overrides = [
+  "Environment=staging",
+  "CorsOrigins=https://staging.skafu.com"
+]
+
+[production]
+[production.deploy.parameters]
+stack_name = "skafu-prod"
+parameter_overrides = [
+  "Environment=production",
+  "CorsOrigins=https://skafu.com"
+]
+confirm_changeset = true
+fail_on_empty_changeset = false
+```
+
+### Lambda Function Structure
+
+```yaml
+# Function organization
+Lambda_Architecture:
+  Function_Structure:
+    - function_name: "MetricsFunction"
+      handler: "app.lambda_handler"
+      runtime: "python3.12"
+      memory_size: 512
+      timeout: 30
+      environment:
+        METRICS_TABLE: !Ref MetricsTable
+        LOG_LEVEL: INFO
+      layers:
+        - !Ref PowertoolsLayer
+      events:
+        - api_gateway:
+            path: "/api/metrics"
+            method: "GET"
+        - api_gateway:
+            path: "/api/metrics"
+            method: "POST"
     
-    deployment_configuration:
-      maximum_percent: 200
-      minimum_healthy_percent: 100
-      
-    deployment_circuit_breaker:
-      enable: true
-      rollback: true
+    - function_name: "AlertsFunction"
+      handler: "app.lambda_handler"
+      runtime: "python3.12"
+      memory_size: 512
+      timeout: 30
+      environment:
+        ALERTS_TABLE: !Ref AlertsTable
+        SNS_TOPIC: !Ref AlertsTopic
+      layers:
+        - !Ref PowertoolsLayer
+      events:
+        - api_gateway:
+            path: "/api/alerts"
+            method: "GET"
+        - api_gateway:
+            path: "/api/alerts"
+            method: "POST"
+        - dynamodb:
+            stream: !GetAtt MetricsTable.StreamArn
+            starting_position: "LATEST"
+            batch_size: 10
+  
+  Deployment_Configuration:
+    packaging:
+      individually: true
+      exclude:
+        - "**/*"
+      include:
+        - "src/handlers/*/app.py"
+        - "src/shared/**"
     
-    network_configuration:
-      subnets: ["subnet-12345", "subnet-67890"]
-      security_groups: ["sg-app-12345"]
-      assign_public_ip: "DISABLED"
+    environment_variables:
+      global:
+        POWERTOOLS_SERVICE_NAME: "skafu"
+        POWERTOOLS_METRICS_NAMESPACE: "skafu"
+        LOG_LEVEL: "INFO"
+        CORS_ORIGINS: "${self:custom.corsOrigins.${self:provider.stage}}"
     
-    load_balancers:
-      - target_group_arn: "arn:aws:elasticloadbalancing:us-east-1:account:targetgroup/skafu-tg"
-        container_name: "skafu-app"
-        container_port: 3000
+    tracing:
+      lambda: true
+      api_gateway: true
     
-    service_connect_configuration:
-      enabled: true
-      namespace: "skafu"
-      services:
-        - port_name: "api"
-          discovery_name: "skafu-api"
-          client_aliases:
-            - port: 3000
-              dns_name: "skafu-api.local"
+    monitoring:
+      log_retention: "${self:custom.logRetention.${self:provider.stage}}"
+      metrics_enabled: true
+      enhanced_monitoring: true
+      dead_letter_queue: true
 ```
 
 ## Infrastructure Scaling
@@ -652,40 +907,36 @@ ECS_Configuration:
 
 ```yaml
 Auto_Scaling_Strategy:
-  ECS_Service_Scaling:
-    target_tracking_policies:
-      - metric_type: "ECSServiceAverageCPUUtilization"
-        target_value: 70
-        scale_out_cooldown: 300
-        scale_in_cooldown: 600
+  API_Gateway_Scaling:
+    throttling_policies:
+      - stage: "development"
+        burst_limit: 200
+        rate_limit: 100
       
-      - metric_type: "ECSServiceAverageMemoryUtilization"
-        target_value: 80
-        scale_out_cooldown: 300
-        scale_in_cooldown: 600
+      - stage: "staging"
+        burst_limit: 1000
+        rate_limit: 500
       
-      - metric_type: "ALBRequestCountPerTarget"
-        target_value: 1000
-        scale_out_cooldown: 180
-        scale_in_cooldown: 300
+      - stage: "production"
+        burst_limit: 5000
+        rate_limit: 2000
     
-    step_scaling_policies:
-      - metric_name: "CPUUtilization"
-        threshold: 85
-        adjustment_type: "ChangeInCapacity"
-        scaling_adjustment: 2
-        cooldown: 300
+    usage_plans:
+      - name: "basic"
+        throttle:
+          burst_limit: 200
+          rate_limit: 100
+        quota:
+          limit: 10000
+          period: "DAY"
       
-      - metric_name: "CPUUtilization"
-        threshold: 40
-        adjustment_type: "ChangeInCapacity"
-        scaling_adjustment: -1
-        cooldown: 600
-    
-    capacity_limits:
-      minimum: 2
-      maximum: 50
-      desired: 3
+      - name: "premium"
+        throttle:
+          burst_limit: 1000
+          rate_limit: 500
+        quota:
+          limit: 100000
+          period: "DAY"
   
   Lambda_Scaling:
     reserved_concurrency: 100
@@ -704,24 +955,36 @@ Auto_Scaling_Strategy:
         threshold: 0
         action: "increase_concurrency"
   
-  RDS_Scaling:
-    read_replicas:
-      minimum: 1
-      maximum: 5
-      
+  DynamoDB_Scaling:
+    billing_mode: "PAY_PER_REQUEST"
+    
     auto_scaling_policy:
-      metric: "DatabaseConnections"
-      target_value: 70
-      scale_out_cooldown: 300
-      scale_in_cooldown: 600
+      read_capacity:
+        min: 5
+        max: 1000
+        target_utilization: 70
+      
+      write_capacity:
+        min: 5
+        max: 1000
+        target_utilization: 70
     
-    performance_insights: true
-    monitoring_interval: 60
+    global_secondary_indexes:
+      - index_name: "GSI1"
+        auto_scaling:
+          read_capacity:
+            min: 5
+            max: 1000
+            target_utilization: 70
+          write_capacity:
+            min: 5
+            max: 1000
+            target_utilization: 70
     
-    proxy_configuration:
-      max_connections_percent: 100
-      max_idle_connections_percent: 50
-      require_tls: true
+    backup_configuration:
+      point_in_time_recovery: true
+      backup_retention_period: 35
+      delete_protection: true
 ```
 
 ### Cost Optimization
@@ -759,19 +1022,21 @@ Cost_Optimization_Strategy:
 
 ```yaml
 Backup_Strategy:
-  RDS_Backups:
-    automated_backup_retention: 30
-    backup_window: "03:00-04:00"
-    maintenance_window: "sun:04:00-sun:05:00"
-    
-    snapshot_configuration:
-      manual_snapshots: "weekly"
-      cross_region_snapshots: true
-      target_region: "us-west-2"
-      retention_period: 90
-    
+  DynamoDB_Backups:
     point_in_time_recovery: true
-    deletion_protection: true
+    continuous_backups: true
+    backup_retention_period: 35
+    
+    on_demand_backups:
+      frequency: "weekly"
+      retention_period: 90
+      cross_region_copy: true
+      target_region: "us-west-2"
+    
+    restore_configuration:
+      point_in_time_recovery: true
+      cross_region_restore: true
+      table_restore_validation: true
   
   S3_Backups:
     versioning: true
@@ -790,11 +1055,13 @@ Backup_Strategy:
     version_retention: 10
     code_backup_to_s3: true
     environment_config_backup: true
+    layer_version_backup: true
     
-  ECS_Backups:
-    task_definition_versions: 20
+  SAM_Backups:
+    template_versioning: true
     configuration_backup: true
-    container_image_backup: true
+    parameter_backup: true
+    stack_policy_backup: true
 ```
 
 ### Recovery Procedures
@@ -822,16 +1089,17 @@ Recovery_Procedures:
       - Manual data recovery procedures
     
     Application_Recovery:
-      - Blue-green deployment rollback
-      - Container image rollback
       - Lambda function version rollback
+      - API Gateway stage rollback
       - Static asset recovery from S3
+      - Configuration parameter rollback
     
     Infrastructure_Recovery:
-      - CDK stack recreation
+      - SAM stack recreation
+      - CloudFormation stack rollback
       - Cross-region resource deployment
       - DNS failover configuration
-      - Load balancer reconfiguration
+      - DynamoDB table restoration
 ```
 
 ## Security and Compliance

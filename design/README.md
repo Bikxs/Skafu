@@ -40,9 +40,22 @@ Infrastructure and CI/CD patterns.
 
 1. **Domain-Driven Design**: Organize by business domains with clear boundaries
 2. **Event-Driven Architecture**: Loose coupling through EventBridge
-3. **CQRS + Event Sourcing**: Separate command/query responsibilities
-4. **Configuration over Code**: Prefer Step Functions over Lambda code
+3. **CQRS + Event Sourcing**: Separate command/query responsibilities with event store
+4. **Serverless-First**: AWS Lambda, API Gateway, and managed services
 5. **Observability First**: Comprehensive monitoring and debugging support
+
+## Implementation Status
+
+**Current Phase**: MVP Implementation with full event sourcing architecture
+
+- **Data Access**: Event sourcing with DynamoDB event store
+- **Command APIs**: REST endpoints for commands
+- **Query APIs**: GraphQL (Amplify Gen2) for queries
+- **Event Flow**: Commands → Events → EventBridge → Read Model Updates
+- **Domains**: Observability domain functional, others stubbed
+- **Frontend**: React + Redux + Cloudscape Design System
+
+See [IMPLEMENTATION_NOTES.md](./IMPLEMENTATION_NOTES.md) for detailed alignment between design vision and current implementation.
 
 ## Getting Started
 
