@@ -185,7 +185,7 @@ npm run dev
 npm test
 ```
 
-## Development Roadmap
+## Observability (MVP) -Development Roadmap
 
 ### ✅ Phase 1: Foundation & Infrastructure (COMPLETED)
 - **Project Structure & Setup**: Domain-first folder structure with Python and React foundations
