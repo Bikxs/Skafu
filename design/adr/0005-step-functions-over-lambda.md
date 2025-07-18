@@ -1,4 +1,4 @@
-# ADR-0007: Step Functions Over Lambda Code (Configuration Over Code)
+# ADR-0005: Step Functions Over Lambda Code (Configuration Over Code)
 
 **Status**: 🟢 Accepted  
 **Date**: 2025-01-18  

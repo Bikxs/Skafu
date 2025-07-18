@@ -1,4 +1,4 @@
-# ADR-0012: No Template Versioning
+# ADR-0010: No Template Versioning
 
 **Status**: 🟢 Accepted  
 **Date**: 2025-01-18  

@@ -1,4 +1,4 @@
-# ADR-0011: Embedded Claude SDK Integration
+# ADR-0009: Embedded Claude SDK Integration
 
 **Status**: 🟢 Accepted  
 **Date**: 2025-01-18  

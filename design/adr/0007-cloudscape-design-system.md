@@ -1,4 +1,4 @@
-# ADR-0008: Cloudscape Design System
+# ADR-0007: Cloudscape Design System
 
 **Status**: 🟢 Accepted  
 **Date**: 2025-01-18  

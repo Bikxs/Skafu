@@ -1,4 +1,4 @@
-# ADR-0009: GitHub Actions CI/CD
+# ADR-0008: GitHub Actions CI/CD
 
 **Status**: 🟢 Accepted  
 **Date**: 2025-01-18  
