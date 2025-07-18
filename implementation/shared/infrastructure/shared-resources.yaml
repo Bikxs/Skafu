@@ -1,0 +1,357 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'Skafu - Shared Resources Stack'
+
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues: [development, staging, production]
+    Default: development
+    Description: Environment name
+  
+  CorsOrigins:
+    Type: String
+    Default: "http://localhost:3000"
+    Description: Allowed CORS origins
+  
+  LogLevel:
+    Type: String
+    AllowedValues: [DEBUG, INFO, WARN, ERROR]
+    Default: INFO
+    Description: Lambda function log level
+
+Conditions:
+  IsProduction: !Equals [!Ref Environment, production]
+
+Resources:
+  # Custom EventBridge Bus
+  EventBus:
+    Type: AWS::Events::EventBus
+    Properties:
+      Name: !Sub 'skafu-events-${Environment}'
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: Skafu
+        - Key: ManagedBy
+          Value: SAM
+  
+  # Error EventBridge Bus
+  ErrorBus:
+    Type: AWS::Events::EventBus
+    Properties:
+      Name: !Sub 'skafu-errors-${Environment}'
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: Skafu
+        - Key: ManagedBy
+          Value: SAM
+  
+  # API Gateway
+  ApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref Environment
+      Name: !Sub 'skafu-api-${Environment}'
+      Cors:
+        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token,X-Correlation-Id'"
+        AllowOrigin: !Sub "'${CorsOrigins}'"
+        AllowCredentials: true
+      Auth:
+        DefaultAuthorizer: CognitoAuthorizer
+        Authorizers:
+          CognitoAuthorizer:
+            UserPoolArn: !GetAtt UserPool.Arn
+            Identity:
+              Header: Authorization
+      GatewayResponses:
+        DEFAULT_4XX:
+          ResponseParameters:
+            Headers:
+              Access-Control-Allow-Origin: !Sub "'${CorsOrigins}'"
+              Access-Control-Allow-Credentials: "'true'"
+        DEFAULT_5XX:
+          ResponseParameters:
+            Headers:
+              Access-Control-Allow-Origin: !Sub "'${CorsOrigins}'"
+              Access-Control-Allow-Credentials: "'true'"
+      TracingEnabled: true
+      Tags:
+        Environment: !Ref Environment
+        Project: Skafu
+        ManagedBy: SAM
+  
+  # API Gateway Root Resource for /api/v1
+  ApiV1Resource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref ApiGateway
+      ParentId: !GetAtt ApiGateway.RootResourceId
+      PathPart: 'api'
+  
+  ApiV1VersionResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref ApiGateway
+      ParentId: !Ref ApiV1Resource
+      PathPart: 'v1'
+  
+  # Cognito User Pool
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub 'skafu-users-${Environment}'
+      UsernameAttributes:
+        - email
+      AutoVerifiedAttributes:
+        - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: !If [IsProduction, 12, 8]
+          RequireUppercase: true
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: !If [IsProduction, true, false]
+      Schema:
+        - Name: email
+          AttributeDataType: String
+          Mutable: true
+          Required: true
+        - Name: name
+          AttributeDataType: String
+          Mutable: true
+          Required: true
+        - Name: family_name
+          AttributeDataType: String
+          Mutable: true
+          Required: true
+        - Name: given_name
+          AttributeDataType: String
+          Mutable: true
+          Required: true
+      UserPoolTags:
+        Environment: !Ref Environment
+        Project: Skafu
+        ManagedBy: SAM
+  
+  # Cognito User Pool Client
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref UserPool
+      ClientName: !Sub 'skafu-client-${Environment}'
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+        - ALLOW_USER_PASSWORD_AUTH
+      SupportedIdentityProviders:
+        - COGNITO
+      TokenValidityUnits:
+        AccessToken: hours
+        IdToken: hours
+        RefreshToken: days
+      AccessTokenValidity: 1
+      IdTokenValidity: 1
+      RefreshTokenValidity: 30
+      ReadAttributes:
+        - email
+        - name
+        - family_name
+        - given_name
+      WriteAttributes:
+        - name
+        - family_name
+        - given_name
+  
+  # Cognito User Pool Groups
+  AdminGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      GroupName: Admin
+      Description: Administrative users with full access
+      UserPoolId: !Ref UserPool
+      Precedence: 1
+  
+  DeveloperGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      GroupName: Developer
+      Description: Developer users with project management access
+      UserPoolId: !Ref UserPool
+      Precedence: 2
+  
+  ViewerGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      GroupName: Viewer
+      Description: Read-only users
+      UserPoolId: !Ref UserPool
+      Precedence: 3
+  
+  # DynamoDB Event Store
+  EventStore:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub 'skafu-events-${Environment}'
+      AttributeDefinitions:
+        - AttributeName: aggregateId
+          AttributeType: S
+        - AttributeName: eventSequence
+          AttributeType: S
+      KeySchema:
+        - AttributeName: aggregateId
+          KeyType: HASH
+        - AttributeName: eventSequence
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      DeletionProtectionEnabled: !If [IsProduction, true, false]
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: Skafu
+        - Key: ManagedBy
+          Value: SAM
+  
+  # S3 Bucket for Templates and Assets
+  AssetsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'skafu-assets-${Environment}-${AWS::AccountId}'
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: Skafu
+        - Key: ManagedBy
+          Value: SAM
+  
+  # KMS Key for Encryption
+  KMSKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: !Sub 'Skafu encryption key for ${Environment}'
+      KeyPolicy:
+        Statement:
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            Action: 'kms:*'
+            Resource: '*'
+          - Sid: Allow use of the key
+            Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+                - events.amazonaws.com
+                - dynamodb.amazonaws.com
+            Action:
+              - 'kms:Encrypt'
+              - 'kms:Decrypt'
+              - 'kms:ReEncrypt*'
+              - 'kms:GenerateDataKey*'
+              - 'kms:DescribeKey'
+            Resource: '*'
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: Skafu
+        - Key: ManagedBy
+          Value: SAM
+  
+  KMSKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: !Sub 'alias/skafu-${Environment}'
+      TargetKeyId: !Ref KMSKey
+
+Outputs:
+  ApiEndpoint:
+    Description: API Gateway endpoint URL
+    Value: !Sub 'https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Environment}'
+    Export:
+      Name: !Sub '${AWS::StackName}-ApiEndpoint'
+  
+  ApiGatewayId:
+    Description: API Gateway ID
+    Value: !Ref ApiGateway
+    Export:
+      Name: !Sub '${AWS::StackName}-ApiGatewayId'
+  
+  ApiGatewayRootResourceId:
+    Description: API Gateway V1 Resource ID
+    Value: !Ref ApiV1VersionResource
+    Export:
+      Name: !Sub '${AWS::StackName}-ApiGatewayRootResourceId'
+  
+  EventBusName:
+    Description: Custom EventBridge bus name
+    Value: !Ref EventBus
+    Export:
+      Name: !Sub '${AWS::StackName}-EventBusName'
+  
+  ErrorBusName:
+    Description: Error EventBridge bus name
+    Value: !Ref ErrorBus
+    Export:
+      Name: !Sub '${AWS::StackName}-ErrorBusName'
+  
+  UserPoolId:
+    Description: Cognito User Pool ID
+    Value: !Ref UserPool
+    Export:
+      Name: !Sub '${AWS::StackName}-UserPoolId'
+  
+  UserPoolClientId:
+    Description: Cognito User Pool Client ID
+    Value: !Ref UserPoolClient
+    Export:
+      Name: !Sub '${AWS::StackName}-UserPoolClientId'
+  
+  EventStoreTableName:
+    Description: DynamoDB Event Store table name
+    Value: !Ref EventStore
+    Export:
+      Name: !Sub '${AWS::StackName}-EventStoreTableName'
+  
+  AssetsBucketName:
+    Description: S3 Assets bucket name
+    Value: !Ref AssetsBucket
+    Export:
+      Name: !Sub '${AWS::StackName}-AssetsBucketName'
+  
+  KMSKeyId:
+    Description: KMS Key ID
+    Value: !Ref KMSKey
+    Export:
+      Name: !Sub '${AWS::StackName}-KMSKeyId'
+  
+  KMSKeyArn:
+    Description: KMS Key ARN
+    Value: !GetAtt KMSKey.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-KMSKeyArn'

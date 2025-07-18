@@ -1,0 +1,95 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'Skafu - Microservices Scaffolding Platform - Root Template'
+
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues: [development, staging, production]
+    Default: development
+    Description: Environment name
+  
+  CorsOrigins:
+    Type: String
+    Default: "http://localhost:3000"
+    Description: Allowed CORS origins
+  
+  LogLevel:
+    Type: String
+    AllowedValues: [DEBUG, INFO, WARN, ERROR]
+    Default: INFO
+    Description: Lambda function log level
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Timeout: 30
+    MemorySize: 512
+    Environment:
+      Variables:
+        POWERTOOLS_SERVICE_NAME: skafu
+        POWERTOOLS_METRICS_NAMESPACE: skafu
+        LOG_LEVEL: !Ref LogLevel
+        ENVIRONMENT: !Ref Environment
+    Tracing: Active
+    Tags:
+      Environment: !Ref Environment
+      Project: Skafu
+      ManagedBy: SAM
+
+Resources:
+  # Shared Resources Stack
+  SharedResourcesStack:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: shared/infrastructure/shared-resources.yaml
+      Parameters:
+        Environment: !Ref Environment
+        CorsOrigins: !Ref CorsOrigins
+        LogLevel: !Ref LogLevel
+  
+  # Observability Domain Stack
+  ObservabilityStack:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: domains/observability/template.yaml
+      Parameters:
+        Environment: !Ref Environment
+        LogLevel: !Ref LogLevel
+        EventBusName: !GetAtt SharedResourcesStack.Outputs.EventBusName
+        ErrorBusName: !GetAtt SharedResourcesStack.Outputs.ErrorBusName
+        UserPoolId: !GetAtt SharedResourcesStack.Outputs.UserPoolId
+        UserPoolClientId: !GetAtt SharedResourcesStack.Outputs.UserPoolClientId
+        ApiGatewayId: !GetAtt SharedResourcesStack.Outputs.ApiGatewayId
+        ApiGatewayRootResourceId: !GetAtt SharedResourcesStack.Outputs.ApiGatewayRootResourceId
+
+Outputs:
+  ApiEndpoint:
+    Description: API Gateway endpoint URL
+    Value: !GetAtt SharedResourcesStack.Outputs.ApiEndpoint
+    Export:
+      Name: !Sub '${AWS::StackName}-ApiEndpoint'
+  
+  EventBusName:
+    Description: Custom EventBridge bus name
+    Value: !GetAtt SharedResourcesStack.Outputs.EventBusName
+    Export:
+      Name: !Sub '${AWS::StackName}-EventBusName'
+  
+  ErrorBusName:
+    Description: Error EventBridge bus name
+    Value: !GetAtt SharedResourcesStack.Outputs.ErrorBusName
+    Export:
+      Name: !Sub '${AWS::StackName}-ErrorBusName'
+  
+  UserPoolId:
+    Description: Cognito User Pool ID
+    Value: !GetAtt SharedResourcesStack.Outputs.UserPoolId
+    Export:
+      Name: !Sub '${AWS::StackName}-UserPoolId'
+  
+  UserPoolClientId:
+    Description: Cognito User Pool Client ID
+    Value: !GetAtt SharedResourcesStack.Outputs.UserPoolClientId
+    Export:
+      Name: !Sub '${AWS::StackName}-UserPoolClientId'
