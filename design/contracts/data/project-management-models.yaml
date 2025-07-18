@@ -1,0 +1,901 @@
+title: Project Management Domain Data Models
+description: Data models and validation schemas for the Project Management domain
+version: 1.0.0
+
+# JSON Schema definitions for Project Management domain entities
+
+schemas:
+  # Core Project Entity
+  Project:
+    type: object
+    required:
+      - id
+      - name
+      - status
+      - templateId
+      - ownerId
+      - createdAt
+      - updatedAt
+    properties:
+      id:
+        type: string
+        format: uuid
+        description: Unique identifier for the project
+        example: "123e4567-e89b-12d3-a456-426614174000"
+      name:
+        type: string
+        minLength: 1
+        maxLength: 100
+        pattern: "^[a-zA-Z0-9\\s\\-_]+$"
+        description: Project name
+        example: "E-commerce Platform"
+      description:
+        type: string
+        maxLength: 1000
+        description: Project description
+        example: "A modern e-commerce platform built with microservices architecture"
+      status:
+        $ref: "#/schemas/ProjectStatus"
+      templateId:
+        type: string
+        minLength: 1
+        maxLength: 100
+        description: Template used for the project
+        example: "full-stack-template"
+      ownerId:
+        type: string
+        format: uuid
+        description: User ID of the project owner
+        example: "456e7890-e12b-34d5-a789-426614174001"
+      configuration:
+        $ref: "#/schemas/ProjectConfiguration"
+      metadata:
+        $ref: "#/schemas/ProjectMetadata"
+      analytics:
+        $ref: "#/schemas/ProjectAnalytics"
+      createdAt:
+        type: string
+        format: date-time
+        description: Timestamp when the project was created
+        example: "2025-01-18T10:30:00.000Z"
+      updatedAt:
+        type: string
+        format: date-time
+        description: Timestamp when the project was last updated
+        example: "2025-01-18T11:45:00.000Z"
+    additionalProperties: false
+
+  ProjectStatus:
+    type: string
+    enum:
+      - draft
+      - configuring
+      - ready
+      - deploying
+      - deployed
+      - failed
+      - archived
+    description: Current status of the project
+    example: "ready"
+
+  ProjectConfiguration:
+    type: object
+    required:
+      - runtime
+      - region
+    properties:
+      runtime:
+        type: string
+        enum:
+          - python3.9
+          - python3.10
+          - python3.11
+          - python3.12
+          - nodejs18
+          - nodejs20
+          - java11
+          - java17
+          - java21
+          - dotnet6
+          - dotnet7
+          - dotnet8
+        description: Runtime environment for the project
+        example: "python3.11"
+      region:
+        type: string
+        pattern: "^[a-z]{2}-[a-z]+-\\d{1}$"
+        description: AWS region for deployment
+        example: "us-east-1"
+      features:
+        type: array
+        items:
+          type: string
+          enum:
+            - authentication
+            - database
+            - caching
+            - monitoring
+            - logging
+            - api-gateway
+            - load-balancer
+            - auto-scaling
+            - backup
+            - cdn
+        uniqueItems: true
+        description: List of enabled features
+        example: ["authentication", "database", "monitoring"]
+      environment:
+        type: object
+        additionalProperties:
+          type: string
+          maxLength: 1000
+        maxProperties: 50
+        description: Environment variables
+        example:
+          NODE_ENV: "production"
+          LOG_LEVEL: "info"
+      tags:
+        type: object
+        additionalProperties:
+          type: string
+          maxLength: 256
+        maxProperties: 50
+        description: Project tags
+        example:
+          team: "platform"
+          environment: "production"
+          cost-center: "engineering"
+      limits:
+        $ref: "#/schemas/ProjectLimits"
+    additionalProperties: false
+
+  ProjectLimits:
+    type: object
+    properties:
+      maxMemory:
+        type: integer
+        minimum: 128
+        maximum: 10240
+        description: Maximum memory allocation in MB
+        example: 1024
+      maxCpu:
+        type: integer
+        minimum: 1
+        maximum: 16
+        description: Maximum CPU allocation
+        example: 2
+      maxStorage:
+        type: integer
+        minimum: 1
+        maximum: 1000
+        description: Maximum storage allocation in GB
+        example: 100
+      maxConnections:
+        type: integer
+        minimum: 1
+        maximum: 10000
+        description: Maximum concurrent connections
+        example: 1000
+      requestTimeout:
+        type: integer
+        minimum: 1
+        maximum: 900
+        description: Request timeout in seconds
+        example: 30
+    additionalProperties: false
+
+  ProjectMetadata:
+    type: object
+    properties:
+      createdBy:
+        type: string
+        format: uuid
+        description: User ID who created the project
+        example: "456e7890-e12b-34d5-a789-426614174001"
+      lastModifiedBy:
+        type: string
+        format: uuid
+        description: User ID who last modified the project
+        example: "456e7890-e12b-34d5-a789-426614174001"
+      version:
+        type: string
+        pattern: "^\\d+\\.\\d+\\.\\d+$"
+        description: Project version
+        example: "1.0.0"
+      repository:
+        $ref: "#/schemas/RepositoryInfo"
+      deployment:
+        $ref: "#/schemas/DeploymentInfo"
+      compliance:
+        $ref: "#/schemas/ComplianceInfo"
+    additionalProperties: false
+
+  RepositoryInfo:
+    type: object
+    properties:
+      url:
+        type: string
+        format: uri
+        description: Repository URL
+        example: "https://github.com/example/project"
+      branch:
+        type: string
+        minLength: 1
+        maxLength: 255
+        description: Default branch
+        example: "main"
+      lastCommit:
+        type: string
+        pattern: "^[a-f0-9]{40}$"
+        description: Last commit SHA
+        example: "abc123def456789012345678901234567890abcd"
+      lastCommitAt:
+        type: string
+        format: date-time
+        description: Last commit timestamp
+        example: "2025-01-18T10:30:00.000Z"
+    additionalProperties: false
+
+  DeploymentInfo:
+    type: object
+    properties:
+      lastDeploymentId:
+        type: string
+        format: uuid
+        description: ID of the last deployment
+        example: "789e1234-e56f-78d9-a012-426614174002"
+      lastDeploymentAt:
+        type: string
+        format: date-time
+        description: Timestamp of last deployment
+        example: "2025-01-18T10:30:00.000Z"
+      environment:
+        type: string
+        enum: [development, staging, production]
+        description: Current deployment environment
+        example: "production"
+      status:
+        type: string
+        enum: [pending, running, succeeded, failed, cancelled]
+        description: Last deployment status
+        example: "succeeded"
+      url:
+        type: string
+        format: uri
+        description: Deployment URL
+        example: "https://api.example.com"
+    additionalProperties: false
+
+  ComplianceInfo:
+    type: object
+    properties:
+      certifications:
+        type: array
+        items:
+          type: string
+          enum:
+            - SOC2
+            - ISO27001
+            - PCI-DSS
+            - HIPAA
+            - GDPR
+            - CCPA
+        uniqueItems: true
+        description: Required compliance certifications
+        example: ["SOC2", "GDPR"]
+      dataClassification:
+        type: string
+        enum: [public, internal, confidential, restricted]
+        description: Data classification level
+        example: "confidential"
+      retentionPeriod:
+        type: integer
+        minimum: 1
+        maximum: 3650
+        description: Data retention period in days
+        example: 365
+      auditRequired:
+        type: boolean
+        description: Whether audit trail is required
+        example: true
+    additionalProperties: false
+
+  ProjectAnalytics:
+    type: object
+    properties:
+      deploymentCount:
+        type: integer
+        minimum: 0
+        description: Total number of deployments
+        example: 25
+      successRate:
+        type: number
+        format: float
+        minimum: 0
+        maximum: 1
+        description: Deployment success rate
+        example: 0.96
+      averageDeploymentTime:
+        type: number
+        format: float
+        minimum: 0
+        description: Average deployment time in seconds
+        example: 420.5
+      lastDeployment:
+        type: string
+        format: date-time
+        description: Timestamp of last deployment
+        example: "2025-01-18T10:30:00.000Z"
+      uptime:
+        type: number
+        format: float
+        minimum: 0
+        maximum: 1
+        description: Service uptime percentage
+        example: 0.9995
+      errorRate:
+        type: number
+        format: float
+        minimum: 0
+        maximum: 1
+        description: Error rate percentage
+        example: 0.001
+      resourceUtilization:
+        $ref: "#/schemas/ResourceUtilization"
+    additionalProperties: false
+
+  ResourceUtilization:
+    type: object
+    properties:
+      cpu:
+        type: number
+        format: float
+        minimum: 0
+        maximum: 100
+        description: CPU utilization percentage
+        example: 45.2
+      memory:
+        type: number
+        format: float
+        minimum: 0
+        maximum: 100
+        description: Memory utilization percentage
+        example: 62.8
+      storage:
+        type: number
+        format: float
+        minimum: 0
+        maximum: 100
+        description: Storage utilization percentage
+        example: 28.5
+      network:
+        type: number
+        format: float
+        minimum: 0
+        description: Network utilization in Mbps
+        example: 125.3
+    additionalProperties: false
+
+  # Deployment Entity
+  Deployment:
+    type: object
+    required:
+      - id
+      - projectId
+      - status
+      - environment
+      - createdAt
+    properties:
+      id:
+        type: string
+        format: uuid
+        description: Unique identifier for the deployment
+        example: "789e1234-e56f-78d9-a012-426614174002"
+      projectId:
+        type: string
+        format: uuid
+        description: Project ID this deployment belongs to
+        example: "123e4567-e89b-12d3-a456-426614174000"
+      status:
+        $ref: "#/schemas/DeploymentStatus"
+      environment:
+        type: string
+        enum: [development, staging, production]
+        description: Target environment for deployment
+        example: "production"
+      version:
+        type: string
+        pattern: "^\\d+\\.\\d+\\.\\d+$"
+        description: Deployment version
+        example: "1.2.3"
+      commitHash:
+        type: string
+        pattern: "^[a-f0-9]{40}$"
+        description: Git commit hash
+        example: "abc123def456789012345678901234567890abcd"
+      configuration:
+        $ref: "#/schemas/DeploymentConfiguration"
+      progress:
+        $ref: "#/schemas/DeploymentProgress"
+      logs:
+        type: array
+        items:
+          $ref: "#/schemas/DeploymentLog"
+        description: Deployment logs
+      metrics:
+        $ref: "#/schemas/DeploymentMetrics"
+      createdAt:
+        type: string
+        format: date-time
+        description: Timestamp when deployment was created
+        example: "2025-01-18T10:30:00.000Z"
+      startedAt:
+        type: string
+        format: date-time
+        description: Timestamp when deployment started
+        example: "2025-01-18T10:31:00.000Z"
+      completedAt:
+        type: string
+        format: date-time
+        description: Timestamp when deployment completed
+        example: "2025-01-18T10:38:00.000Z"
+      duration:
+        type: integer
+        minimum: 0
+        description: Deployment duration in seconds
+        example: 420
+    additionalProperties: false
+
+  DeploymentStatus:
+    type: string
+    enum:
+      - pending
+      - running
+      - succeeded
+      - failed
+      - cancelled
+      - timeout
+      - rollback
+    description: Current status of the deployment
+    example: "running"
+
+  DeploymentConfiguration:
+    type: object
+    properties:
+      strategy:
+        type: string
+        enum: [blue-green, rolling, canary, recreate]
+        description: Deployment strategy
+        example: "blue-green"
+      rollbackEnabled:
+        type: boolean
+        description: Whether rollback is enabled
+        example: true
+      healthCheckEnabled:
+        type: boolean
+        description: Whether health checks are enabled
+        example: true
+      notifications:
+        type: array
+        items:
+          type: string
+          enum: [email, slack, teams, webhook]
+        uniqueItems: true
+        description: Notification channels
+        example: ["email", "slack"]
+      approvalRequired:
+        type: boolean
+        description: Whether manual approval is required
+        example: true
+      maxDuration:
+        type: integer
+        minimum: 60
+        maximum: 3600
+        description: Maximum deployment duration in seconds
+        example: 900
+    additionalProperties: false
+
+  DeploymentProgress:
+    type: object
+    properties:
+      currentStep:
+        type: integer
+        minimum: 0
+        description: Current deployment step
+        example: 3
+      totalSteps:
+        type: integer
+        minimum: 1
+        description: Total deployment steps
+        example: 7
+      percentComplete:
+        type: number
+        format: float
+        minimum: 0
+        maximum: 100
+        description: Percentage completion
+        example: 42.8
+      estimatedTimeRemaining:
+        type: integer
+        minimum: 0
+        description: Estimated time remaining in seconds
+        example: 120
+      currentStepName:
+        type: string
+        description: Name of current step
+        example: "Updating Lambda functions"
+      steps:
+        type: array
+        items:
+          $ref: "#/schemas/DeploymentStep"
+        description: Deployment steps
+    additionalProperties: false
+
+  DeploymentStep:
+    type: object
+    required:
+      - name
+      - status
+    properties:
+      name:
+        type: string
+        minLength: 1
+        maxLength: 100
+        description: Step name
+        example: "Build Docker image"
+      status:
+        type: string
+        enum: [pending, running, succeeded, failed, skipped]
+        description: Step status
+        example: "succeeded"
+      startedAt:
+        type: string
+        format: date-time
+        description: Step start time
+        example: "2025-01-18T10:31:00.000Z"
+      completedAt:
+        type: string
+        format: date-time
+        description: Step completion time
+        example: "2025-01-18T10:33:00.000Z"
+      duration:
+        type: integer
+        minimum: 0
+        description: Step duration in seconds
+        example: 120
+      output:
+        type: string
+        maxLength: 10000
+        description: Step output/logs
+        example: "Successfully built Docker image"
+      errorMessage:
+        type: string
+        maxLength: 1000
+        description: Error message if step failed
+        example: "Docker build failed: missing dependency"
+    additionalProperties: false
+
+  DeploymentLog:
+    type: object
+    required:
+      - timestamp
+      - level
+      - message
+    properties:
+      timestamp:
+        type: string
+        format: date-time
+        description: Log timestamp
+        example: "2025-01-18T10:32:15.123Z"
+      level:
+        type: string
+        enum: [debug, info, warn, error]
+        description: Log level
+        example: "info"
+      message:
+        type: string
+        minLength: 1
+        maxLength: 10000
+        description: Log message
+        example: "Starting deployment process"
+      source:
+        type: string
+        maxLength: 100
+        description: Log source
+        example: "deployment-service"
+      context:
+        type: object
+        additionalProperties:
+          type: string
+        maxProperties: 20
+        description: Additional context
+        example:
+          step: "build"
+          component: "api"
+    additionalProperties: false
+
+  DeploymentMetrics:
+    type: object
+    properties:
+      buildsExecuted:
+        type: integer
+        minimum: 0
+        description: Number of builds executed
+        example: 3
+      testsExecuted:
+        type: integer
+        minimum: 0
+        description: Number of tests executed
+        example: 157
+      testsPassed:
+        type: integer
+        minimum: 0
+        description: Number of tests passed
+        example: 155
+      testsFailed:
+        type: integer
+        minimum: 0
+        description: Number of tests failed
+        example: 2
+      codeCoverage:
+        type: number
+        format: float
+        minimum: 0
+        maximum: 100
+        description: Code coverage percentage
+        example: 89.5
+      artifactsGenerated:
+        type: integer
+        minimum: 0
+        description: Number of artifacts generated
+        example: 5
+      resourcesProvisioned:
+        type: integer
+        minimum: 0
+        description: Number of resources provisioned
+        example: 12
+      healthChecksPassed:
+        type: integer
+        minimum: 0
+        description: Number of health checks passed
+        example: 8
+      healthChecksFailed:
+        type: integer
+        minimum: 0
+        description: Number of health checks failed
+        example: 0
+    additionalProperties: false
+
+  # Configuration Entity
+  Configuration:
+    type: object
+    required:
+      - id
+      - projectId
+      - name
+      - type
+      - data
+      - createdAt
+      - updatedAt
+    properties:
+      id:
+        type: string
+        format: uuid
+        description: Unique identifier for the configuration
+        example: "456e7890-e12b-34d5-a789-426614174003"
+      projectId:
+        type: string
+        format: uuid
+        description: Project ID this configuration belongs to
+        example: "123e4567-e89b-12d3-a456-426614174000"
+      name:
+        type: string
+        minLength: 1
+        maxLength: 100
+        pattern: "^[a-zA-Z0-9\\s\\-_\\.]+$"
+        description: Configuration name
+        example: "Production Environment Variables"
+      description:
+        type: string
+        maxLength: 500
+        description: Configuration description
+        example: "Environment variables for production deployment"
+      type:
+        type: string
+        enum:
+          - environment
+          - database
+          - cache
+          - monitoring
+          - logging
+          - security
+          - networking
+          - custom
+        description: Configuration type
+        example: "environment"
+      environment:
+        type: string
+        enum: [development, staging, production, global]
+        description: Target environment
+        example: "production"
+      data:
+        type: object
+        additionalProperties: true
+        description: Configuration data
+        example:
+          DATABASE_URL: "postgresql://user:pass@host:5432/db"
+          REDIS_URL: "redis://localhost:6379"
+          LOG_LEVEL: "info"
+      schema:
+        type: object
+        description: JSON Schema for configuration validation
+        example:
+          type: "object"
+          properties:
+            DATABASE_URL:
+              type: "string"
+              format: "uri"
+            LOG_LEVEL:
+              type: "string"
+              enum: ["debug", "info", "warn", "error"]
+          required: ["DATABASE_URL"]
+      encrypted:
+        type: boolean
+        description: Whether configuration data is encrypted
+        example: true
+      version:
+        type: integer
+        minimum: 1
+        description: Configuration version
+        example: 3
+      createdAt:
+        type: string
+        format: date-time
+        description: Timestamp when configuration was created
+        example: "2025-01-18T10:30:00.000Z"
+      updatedAt:
+        type: string
+        format: date-time
+        description: Timestamp when configuration was last updated
+        example: "2025-01-18T11:45:00.000Z"
+    additionalProperties: false
+
+  # Validation Rules
+  ValidationRules:
+    type: object
+    properties:
+      projectName:
+        type: object
+        properties:
+          pattern:
+            type: string
+            description: Regex pattern for project name validation
+            example: "^[a-zA-Z0-9\\s\\-_]+$"
+          minLength:
+            type: integer
+            minimum: 1
+            description: Minimum length for project name
+            example: 1
+          maxLength:
+            type: integer
+            minimum: 1
+            description: Maximum length for project name
+            example: 100
+          reservedNames:
+            type: array
+            items:
+              type: string
+            description: List of reserved project names
+            example: ["admin", "api", "system"]
+        additionalProperties: false
+      deploymentLimits:
+        type: object
+        properties:
+          maxConcurrentDeployments:
+            type: integer
+            minimum: 1
+            description: Maximum concurrent deployments per project
+            example: 3
+          maxDeploymentDuration:
+            type: integer
+            minimum: 60
+            description: Maximum deployment duration in seconds
+            example: 3600
+          cooldownPeriod:
+            type: integer
+            minimum: 0
+            description: Cooldown period between deployments in seconds
+            example: 300
+        additionalProperties: false
+      resourceLimits:
+        type: object
+        properties:
+          maxProjectsPerUser:
+            type: integer
+            minimum: 1
+            description: Maximum projects per user
+            example: 10
+          maxConfigurationsPerProject:
+            type: integer
+            minimum: 1
+            description: Maximum configurations per project
+            example: 50
+          maxEnvironmentVariables:
+            type: integer
+            minimum: 1
+            description: Maximum environment variables per project
+            example: 100
+        additionalProperties: false
+    additionalProperties: false
+
+# Validation constraints and business rules
+validationRules:
+  - rule: "Project name must be unique within the organization"
+    constraint: "UNIQUE(project.name) WHERE project.ownerId = :ownerId"
+  
+  - rule: "Only one deployment can be running per project per environment"
+    constraint: "COUNT(*) <= 1 WHERE deployment.projectId = :projectId AND deployment.environment = :environment AND deployment.status = 'running'"
+  
+  - rule: "Configuration names must be unique per project"
+    constraint: "UNIQUE(configuration.name) WHERE configuration.projectId = :projectId"
+  
+  - rule: "Production deployments require approval"
+    constraint: "deployment.environment = 'production' IMPLIES deployment.approvalRequired = true"
+  
+  - rule: "Encrypted configurations cannot be viewed in plain text"
+    constraint: "configuration.encrypted = true IMPLIES configuration.data IS ENCRYPTED"
+
+# Common patterns and examples
+examples:
+  # Example project creation request
+  CreateProjectRequest:
+    name: "E-commerce API"
+    description: "RESTful API for e-commerce platform"
+    templateId: "nodejs-api-template"
+    configuration:
+      runtime: "nodejs18"
+      region: "us-east-1"
+      features: ["authentication", "database", "monitoring"]
+      environment:
+        NODE_ENV: "production"
+        LOG_LEVEL: "info"
+      tags:
+        team: "backend"
+        cost-center: "product"
+
+  # Example deployment request
+  CreateDeploymentRequest:
+    environment: "production"
+    version: "1.2.3"
+    commitHash: "abc123def456789012345678901234567890abcd"
+    configuration:
+      strategy: "blue-green"
+      rollbackEnabled: true
+      healthCheckEnabled: true
+      notifications: ["email", "slack"]
+      approvalRequired: true
+
+  # Example configuration
+  CreateConfigurationRequest:
+    name: "Production Database Config"
+    description: "Database configuration for production environment"
+    type: "database"
+    environment: "production"
+    data:
+      DATABASE_URL: "postgresql://user:pass@prod-db:5432/app"
+      MAX_CONNECTIONS: "20"
+      CONNECTION_TIMEOUT: "30"
+    schema:
+      type: "object"
+      properties:
+        DATABASE_URL:
+          type: "string"
+          format: "uri"
+        MAX_CONNECTIONS:
+          type: "string"
+          pattern: "^[0-9]+$"
+        CONNECTION_TIMEOUT:
+          type: "string"
+          pattern: "^[0-9]+$"
+      required: ["DATABASE_URL"]
+    encrypted: true

@@ -1,0 +1,1041 @@
+title: Template Management Domain Data Models
+description: Data models and validation schemas for the Template Management domain
+version: 1.0.0
+
+# JSON Schema definitions for Template Management domain entities
+
+schemas:
+  # Core Template Entity
+  Template:
+    type: object
+    required:
+      - id
+      - name
+      - type
+      - status
+      - createdAt
+      - updatedAt
+    properties:
+      id:
+        type: string
+        pattern: "^[a-z0-9-]+$"
+        minLength: 1
+        maxLength: 100
+        description: Unique identifier for the template
+        example: "nodejs-api-template"
+      name:
+        type: string
+        minLength: 1
+        maxLength: 100
+        pattern: "^[a-zA-Z0-9\\s\\-_\\.]+$"
+        description: Template name
+        example: "Node.js API Template"
+      description:
+        type: string
+        maxLength: 1000
+        description: Template description
+        example: "A comprehensive Node.js API template with authentication, database, and monitoring"
+      type:
+        $ref: "#/schemas/TemplateType"
+      category:
+        type: string
+        minLength: 1
+        maxLength: 50
+        description: Template category
+        example: "api"
+      status:
+        $ref: "#/schemas/TemplateStatus"
+      author:
+        type: string
+        maxLength: 100
+        description: Template author
+        example: "Platform Team"
+      version:
+        type: string
+        pattern: "^\\d+\\.\\d+\\.\\d+$"
+        description: Template version
+        example: "1.2.3"
+      supportedFrameworks:
+        type: array
+        items:
+          type: string
+          enum:
+            - express
+            - fastify
+            - koa
+            - nest
+            - django
+            - flask
+            - spring
+            - dotnet
+            - rails
+            - gin
+            - echo
+        uniqueItems: true
+        description: List of supported frameworks
+        example: ["express", "fastify"]
+      supportedRuntimes:
+        type: array
+        items:
+          type: string
+          enum:
+            - nodejs18
+            - nodejs20
+            - python3.9
+            - python3.10
+            - python3.11
+            - python3.12
+            - java11
+            - java17
+            - java21
+            - dotnet6
+            - dotnet7
+            - dotnet8
+            - go1.20
+            - go1.21
+        uniqueItems: true
+        description: List of supported runtimes
+        example: ["nodejs18", "nodejs20"]
+      tags:
+        type: array
+        items:
+          type: string
+          minLength: 1
+          maxLength: 50
+          pattern: "^[a-zA-Z0-9\\-_]+$"
+        maxItems: 20
+        uniqueItems: true
+        description: Template tags
+        example: ["api", "microservice", "authentication"]
+      metadata:
+        $ref: "#/schemas/TemplateMetadata"
+      files:
+        type: array
+        items:
+          $ref: "#/schemas/TemplateFile"
+        description: Template files
+      parameters:
+        type: array
+        items:
+          $ref: "#/schemas/TemplateParameter"
+        description: Template parameters
+      analytics:
+        $ref: "#/schemas/TemplateAnalytics"
+      createdAt:
+        type: string
+        format: date-time
+        description: Timestamp when template was created
+        example: "2025-01-18T10:30:00.000Z"
+      updatedAt:
+        type: string
+        format: date-time
+        description: Timestamp when template was last updated
+        example: "2025-01-18T11:45:00.000Z"
+    additionalProperties: false
+
+  TemplateType:
+    type: string
+    enum:
+      - project
+      - service
+      - component
+      - config
+      - infrastructure
+    description: Type of template
+    example: "service"
+
+  TemplateStatus:
+    type: string
+    enum:
+      - draft
+      - validating
+      - validated
+      - published
+      - deprecated
+      - archived
+    description: Current status of the template
+    example: "published"
+
+  TemplateMetadata:
+    type: object
+    properties:
+      author:
+        type: string
+        maxLength: 100
+        description: Template author
+        example: "Platform Team"
+      maintainer:
+        type: string
+        maxLength: 100
+        description: Template maintainer
+        example: "john.doe@example.com"
+      license:
+        type: string
+        maxLength: 50
+        description: Template license
+        example: "MIT"
+      documentation:
+        type: string
+        format: uri
+        description: Link to template documentation
+        example: "https://docs.example.com/templates/nodejs-api"
+      repository:
+        type: string
+        format: uri
+        description: Template repository URL
+        example: "https://github.com/example/nodejs-api-template"
+      compatibility:
+        type: object
+        properties:
+          minVersion:
+            type: string
+            pattern: "^\\d+\\.\\d+\\.\\d+$"
+            description: Minimum compatible version
+            example: "1.0.0"
+          maxVersion:
+            type: string
+            pattern: "^\\d+\\.\\d+\\.\\d+$"
+            description: Maximum compatible version
+            example: "2.0.0"
+        additionalProperties: false
+      requirements:
+        type: object
+        properties:
+          minMemory:
+            type: integer
+            minimum: 64
+            description: Minimum memory requirement in MB
+            example: 256
+          minCpu:
+            type: integer
+            minimum: 1
+            description: Minimum CPU requirement
+            example: 1
+          minStorage:
+            type: integer
+            minimum: 1
+            description: Minimum storage requirement in GB
+            example: 10
+        additionalProperties: false
+      lastModified:
+        type: string
+        format: date-time
+        description: Last modification timestamp
+        example: "2025-01-18T11:45:00.000Z"
+      usageCount:
+        type: integer
+        minimum: 0
+        description: Number of times template has been used
+        example: 142
+      rating:
+        type: number
+        format: float
+        minimum: 0
+        maximum: 5
+        description: Template rating
+        example: 4.7
+      featured:
+        type: boolean
+        description: Whether template is featured
+        example: true
+    additionalProperties: false
+
+  TemplateFile:
+    type: object
+    required:
+      - path
+      - contentType
+      - size
+    properties:
+      path:
+        type: string
+        minLength: 1
+        maxLength: 500
+        pattern: "^[a-zA-Z0-9\\-_\\./]+$"
+        description: File path within the template
+        example: "src/app.js"
+      content:
+        type: string
+        maxLength: 1048576
+        description: File content (for small files)
+        example: "const express = require('express');\nconst app = express();\n"
+      contentType:
+        type: string
+        enum:
+          - text/plain
+          - text/javascript
+          - text/typescript
+          - text/python
+          - text/java
+          - text/html
+          - text/css
+          - text/yaml
+          - text/json
+          - text/xml
+          - text/markdown
+          - application/json
+          - application/yaml
+          - application/xml
+        description: MIME type of the file
+        example: "text/javascript"
+      size:
+        type: integer
+        minimum: 0
+        maximum: 10485760
+        description: File size in bytes
+        example: 1024
+      checksum:
+        type: string
+        pattern: "^[a-f0-9]{32}$"
+        description: MD5 checksum of the file content
+        example: "d41d8cd98f00b204e9800998ecf8427e"
+      encoding:
+        type: string
+        enum: [utf-8, ascii, base64]
+        description: File encoding
+        example: "utf-8"
+      binary:
+        type: boolean
+        description: Whether file is binary
+        example: false
+      template:
+        type: boolean
+        description: Whether file is a Jinja2 template
+        example: true
+      lastModified:
+        type: string
+        format: date-time
+        description: Last modification timestamp
+        example: "2025-01-18T11:45:00.000Z"
+    additionalProperties: false
+
+  TemplateParameter:
+    type: object
+    required:
+      - name
+      - type
+      - required
+    properties:
+      name:
+        type: string
+        minLength: 1
+        maxLength: 100
+        pattern: "^[a-zA-Z][a-zA-Z0-9_]*$"
+        description: Parameter name
+        example: "projectName"
+      displayName:
+        type: string
+        minLength: 1
+        maxLength: 100
+        description: Human-readable parameter name
+        example: "Project Name"
+      description:
+        type: string
+        maxLength: 500
+        description: Parameter description
+        example: "The name of your project"
+      type:
+        type: string
+        enum: [string, integer, number, boolean, array, object, choice]
+        description: Parameter type
+        example: "string"
+      required:
+        type: boolean
+        description: Whether parameter is required
+        example: true
+      defaultValue:
+        description: Default value for the parameter
+        example: "my-project"
+      choices:
+        type: array
+        items:
+          type: object
+          properties:
+            value:
+              description: Choice value
+              example: "express"
+            label:
+              type: string
+              description: Choice label
+              example: "Express.js"
+            description:
+              type: string
+              description: Choice description
+              example: "Fast, unopinionated, minimalist web framework"
+          required: [value, label]
+        description: Available choices for choice type parameters
+      validation:
+        $ref: "#/schemas/ParameterValidation"
+      group:
+        type: string
+        maxLength: 50
+        description: Parameter group for UI organization
+        example: "Database Configuration"
+      order:
+        type: integer
+        minimum: 0
+        description: Display order
+        example: 1
+      conditional:
+        type: object
+        properties:
+          dependsOn:
+            type: string
+            description: Parameter this depends on
+            example: "useDatabase"
+          values:
+            type: array
+            items:
+              type: string
+            description: Values that enable this parameter
+            example: ["true", "yes"]
+        additionalProperties: false
+    additionalProperties: false
+
+  ParameterValidation:
+    type: object
+    properties:
+      pattern:
+        type: string
+        description: Regex pattern for string validation
+        example: "^[a-zA-Z0-9-]+$"
+      minLength:
+        type: integer
+        minimum: 0
+        description: Minimum string length
+        example: 1
+      maxLength:
+        type: integer
+        minimum: 0
+        description: Maximum string length
+        example: 100
+      minimum:
+        type: number
+        description: Minimum value for numbers
+        example: 0
+      maximum:
+        type: number
+        description: Maximum value for numbers
+        example: 100
+      multipleOf:
+        type: number
+        exclusiveMinimum: 0
+        description: Number must be multiple of this value
+        example: 5
+      format:
+        type: string
+        enum: [email, uri, uuid, ipv4, ipv6, date, time, date-time]
+        description: String format validation
+        example: "email"
+      customValidator:
+        type: string
+        description: Custom validation function name
+        example: "validateProjectName"
+    additionalProperties: false
+
+  TemplateAnalytics:
+    type: object
+    properties:
+      totalUsage:
+        type: integer
+        minimum: 0
+        description: Total number of times template has been used
+        example: 142
+      uniqueUsers:
+        type: integer
+        minimum: 0
+        description: Number of unique users who have used the template
+        example: 28
+      successRate:
+        type: number
+        format: float
+        minimum: 0
+        maximum: 1
+        description: Success rate for template usage
+        example: 0.94
+      averageRating:
+        type: number
+        format: float
+        minimum: 0
+        maximum: 5
+        description: Average rating for the template
+        example: 4.7
+      popularParameters:
+        type: array
+        items:
+          type: object
+          properties:
+            parameter:
+              type: string
+              description: Parameter name
+              example: "framework"
+            values:
+              type: array
+              items:
+                type: object
+                properties:
+                  value:
+                    type: string
+                    description: Parameter value
+                    example: "express"
+                  count:
+                    type: integer
+                    minimum: 0
+                    description: Usage count
+                    example: 85
+                  percentage:
+                    type: number
+                    format: float
+                    minimum: 0
+                    maximum: 100
+                    description: Usage percentage
+                    example: 59.9
+              description: Popular values for this parameter
+        description: Popular parameter values
+      usageByPeriod:
+        type: object
+        properties:
+          daily:
+            type: array
+            items:
+              type: object
+              properties:
+                date:
+                  type: string
+                  format: date
+                  example: "2025-01-18"
+                count:
+                  type: integer
+                  minimum: 0
+                  example: 5
+                successCount:
+                  type: integer
+                  minimum: 0
+                  example: 4
+              required: [date, count]
+            description: Daily usage statistics
+          weekly:
+            type: array
+            items:
+              type: object
+              properties:
+                week:
+                  type: string
+                  pattern: "^\\d{4}-W\\d{2}$"
+                  example: "2025-W03"
+                count:
+                  type: integer
+                  minimum: 0
+                  example: 35
+                successCount:
+                  type: integer
+                  minimum: 0
+                  example: 33
+              required: [week, count]
+            description: Weekly usage statistics
+          monthly:
+            type: array
+            items:
+              type: object
+              properties:
+                month:
+                  type: string
+                  pattern: "^\\d{4}-\\d{2}$"
+                  example: "2025-01"
+                count:
+                  type: integer
+                  minimum: 0
+                  example: 142
+                successCount:
+                  type: integer
+                  minimum: 0
+                  example: 134
+              required: [month, count]
+            description: Monthly usage statistics
+      errorPatterns:
+        type: array
+        items:
+          type: object
+          properties:
+            error:
+              type: string
+              description: Error message or pattern
+              example: "Missing required parameter: database"
+            count:
+              type: integer
+              minimum: 0
+              description: Number of occurrences
+              example: 8
+            percentage:
+              type: number
+              format: float
+              minimum: 0
+              maximum: 100
+              description: Percentage of total errors
+              example: 12.5
+            lastOccurrence:
+              type: string
+              format: date-time
+              description: Last occurrence timestamp
+              example: "2025-01-18T10:30:00.000Z"
+            category:
+              type: string
+              enum: [validation, rendering, parameter, file, system]
+              description: Error category
+              example: "validation"
+          required: [error, count, category]
+        description: Common error patterns
+      feedback:
+        type: object
+        properties:
+          totalReviews:
+            type: integer
+            minimum: 0
+            description: Total number of reviews
+            example: 23
+          averageRating:
+            type: number
+            format: float
+            minimum: 0
+            maximum: 5
+            description: Average rating
+            example: 4.7
+          ratingDistribution:
+            type: object
+            properties:
+              "1":
+                type: integer
+                minimum: 0
+                example: 0
+              "2":
+                type: integer
+                minimum: 0
+                example: 1
+              "3":
+                type: integer
+                minimum: 0
+                example: 2
+              "4":
+                type: integer
+                minimum: 0
+                example: 8
+              "5":
+                type: integer
+                minimum: 0
+                example: 12
+            description: Rating distribution
+          commonFeedback:
+            type: array
+            items:
+              type: object
+              properties:
+                category:
+                  type: string
+                  enum: [positive, negative, suggestion]
+                  description: Feedback category
+                  example: "positive"
+                sentiment:
+                  type: string
+                  description: Feedback sentiment
+                  example: "Great template, easy to use"
+                count:
+                  type: integer
+                  minimum: 0
+                  description: Number of similar feedback items
+                  example: 15
+              required: [category, sentiment, count]
+            description: Common feedback themes
+        description: User feedback and ratings
+    additionalProperties: false
+
+  # Template Validation Result
+  ValidationResult:
+    type: object
+    required:
+      - valid
+      - checkedAt
+    properties:
+      valid:
+        type: boolean
+        description: Whether the template is valid
+        example: true
+      errors:
+        type: array
+        items:
+          $ref: "#/schemas/ValidationError"
+        description: List of validation errors
+      warnings:
+        type: array
+        items:
+          $ref: "#/schemas/ValidationWarning"
+        description: List of validation warnings
+      checkedAt:
+        type: string
+        format: date-time
+        description: Timestamp when validation was performed
+        example: "2025-01-18T10:30:00.000Z"
+      validationTime:
+        type: number
+        format: float
+        minimum: 0
+        description: Validation time in seconds
+        example: 2.5
+      validatedFiles:
+        type: integer
+        minimum: 0
+        description: Number of files validated
+        example: 12
+      validatedParameters:
+        type: integer
+        minimum: 0
+        description: Number of parameters validated
+        example: 8
+    additionalProperties: false
+
+  ValidationError:
+    type: object
+    required:
+      - code
+      - message
+      - severity
+    properties:
+      code:
+        type: string
+        enum:
+          - MISSING_REQUIRED_FILE
+          - INVALID_FILE_PATH
+          - INVALID_FILE_CONTENT
+          - INVALID_PARAMETER_TYPE
+          - MISSING_REQUIRED_PARAMETER
+          - INVALID_PARAMETER_DEFAULT
+          - DUPLICATE_PARAMETER_NAME
+          - INVALID_TEMPLATE_SYNTAX
+          - INVALID_JSON_SCHEMA
+          - CIRCULAR_DEPENDENCY
+          - UNSUPPORTED_FEATURE
+        description: Error code
+        example: "MISSING_REQUIRED_FILE"
+      message:
+        type: string
+        minLength: 1
+        maxLength: 500
+        description: Error message
+        example: "Required file 'template.json' is missing"
+      severity:
+        type: string
+        enum: [error, warning, info]
+        description: Error severity
+        example: "error"
+      field:
+        type: string
+        maxLength: 100
+        description: Field that caused the error
+        example: "files"
+      path:
+        type: string
+        maxLength: 500
+        description: Path to the problematic element
+        example: "files.template.json"
+      line:
+        type: integer
+        minimum: 1
+        description: Line number (for file content errors)
+        example: 25
+      column:
+        type: integer
+        minimum: 1
+        description: Column number (for file content errors)
+        example: 10
+      context:
+        type: object
+        additionalProperties: true
+        description: Additional error context
+        example:
+          fileName: "template.json"
+          expectedType: "file"
+    additionalProperties: false
+
+  ValidationWarning:
+    type: object
+    required:
+      - code
+      - message
+    properties:
+      code:
+        type: string
+        enum:
+          - DEPRECATED_FEATURE
+          - MISSING_OPTIONAL_FILE
+          - LARGE_FILE_SIZE
+          - UNUSED_PARAMETER
+          - MISSING_DOCUMENTATION
+          - INCONSISTENT_NAMING
+          - PERFORMANCE_CONCERN
+        description: Warning code
+        example: "DEPRECATED_FEATURE"
+      message:
+        type: string
+        minLength: 1
+        maxLength: 500
+        description: Warning message
+        example: "Using deprecated feature 'old-syntax' in template"
+      field:
+        type: string
+        maxLength: 100
+        description: Field that caused the warning
+        example: "syntax"
+      path:
+        type: string
+        maxLength: 500
+        description: Path to the problematic element
+        example: "files.config.yaml"
+      suggestion:
+        type: string
+        maxLength: 500
+        description: Suggested fix
+        example: "Use 'new-syntax' instead of 'old-syntax'"
+    additionalProperties: false
+
+  # Template Category
+  Category:
+    type: object
+    required:
+      - id
+      - name
+    properties:
+      id:
+        type: string
+        pattern: "^[a-z0-9-]+$"
+        minLength: 1
+        maxLength: 50
+        description: Category identifier
+        example: "api"
+      name:
+        type: string
+        minLength: 1
+        maxLength: 100
+        description: Category name
+        example: "API Templates"
+      description:
+        type: string
+        maxLength: 500
+        description: Category description
+        example: "Templates for building REST APIs and microservices"
+      icon:
+        type: string
+        maxLength: 100
+        description: Category icon name or URL
+        example: "api-icon"
+      color:
+        type: string
+        pattern: "^#[0-9a-fA-F]{6}$"
+        description: Category color (hex)
+        example: "#3498db"
+      parentId:
+        type: string
+        pattern: "^[a-z0-9-]+$"
+        description: Parent category ID
+        example: "backend"
+      templateCount:
+        type: integer
+        minimum: 0
+        description: Number of templates in this category
+        example: 15
+      featured:
+        type: boolean
+        description: Whether category is featured
+        example: true
+      order:
+        type: integer
+        minimum: 0
+        description: Display order
+        example: 1
+    additionalProperties: false
+
+  # Template Usage Statistics
+  UsageStatistics:
+    type: object
+    properties:
+      templateId:
+        type: string
+        description: Template ID
+        example: "nodejs-api-template"
+      userId:
+        type: string
+        format: uuid
+        description: User ID
+        example: "123e4567-e89b-12d3-a456-426614174000"
+      projectId:
+        type: string
+        format: uuid
+        description: Project ID (if applicable)
+        example: "456e7890-e12b-34d5-a789-426614174001"
+      action:
+        type: string
+        enum: [view, download, render, preview, rate, favorite]
+        description: Action performed
+        example: "render"
+      success:
+        type: boolean
+        description: Whether action was successful
+        example: true
+      parameters:
+        type: object
+        additionalProperties: true
+        description: Parameters used (for render/preview actions)
+        example:
+          projectName: "my-api"
+          framework: "express"
+          database: "postgresql"
+      metadata:
+        type: object
+        properties:
+          userAgent:
+            type: string
+            description: User agent string
+            example: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+          ipAddress:
+            type: string
+            format: ipv4
+            description: User IP address
+            example: "192.168.1.100"
+          referrer:
+            type: string
+            format: uri
+            description: Referrer URL
+            example: "https://app.skafu.dev/templates"
+          sessionId:
+            type: string
+            description: Session ID
+            example: "sess_123456789"
+        additionalProperties: false
+      timestamp:
+        type: string
+        format: date-time
+        description: Timestamp of action
+        example: "2025-01-18T10:30:00.000Z"
+      duration:
+        type: number
+        format: float
+        minimum: 0
+        description: Action duration in seconds
+        example: 2.5
+      errorMessage:
+        type: string
+        maxLength: 1000
+        description: Error message if action failed
+        example: "Missing required parameter: database"
+    additionalProperties: false
+
+# Validation constraints and business rules
+validationRules:
+  - rule: "Template ID must be unique"
+    constraint: "UNIQUE(template.id)"
+  
+  - rule: "Template name must be unique within category"
+    constraint: "UNIQUE(template.name) WHERE template.category = :category"
+  
+  - rule: "Published templates cannot be deleted"
+    constraint: "template.status = 'published' IMPLIES template.deletedAt IS NULL"
+  
+  - rule: "Template parameters must have unique names"
+    constraint: "UNIQUE(parameter.name) WHERE parameter.templateId = :templateId"
+  
+  - rule: "Required parameters cannot have empty default values"
+    constraint: "parameter.required = true IMPLIES parameter.defaultValue IS NOT NULL"
+  
+  - rule: "Choice parameters must have at least one choice"
+    constraint: "parameter.type = 'choice' IMPLIES LENGTH(parameter.choices) > 0"
+  
+  - rule: "Template files must not exceed size limits"
+    constraint: "file.size <= 10485760"  # 10MB
+  
+  - rule: "Template must have at least one file"
+    constraint: "COUNT(files) >= 1 WHERE files.templateId = :templateId"
+
+# Common patterns and examples
+examples:
+  # Example template creation
+  CreateTemplateRequest:
+    name: "Node.js API Template"
+    description: "A comprehensive Node.js API template with authentication, database, and monitoring"
+    type: "service"
+    category: "api"
+    supportedFrameworks: ["express", "fastify"]
+    supportedRuntimes: ["nodejs18", "nodejs20"]
+    tags: ["api", "microservice", "authentication"]
+    parameters:
+      - name: "projectName"
+        displayName: "Project Name"
+        description: "The name of your project"
+        type: "string"
+        required: true
+        validation:
+          pattern: "^[a-zA-Z0-9-]+$"
+          minLength: 1
+          maxLength: 100
+      - name: "framework"
+        displayName: "Framework"
+        description: "Choose your preferred framework"
+        type: "choice"
+        required: true
+        choices:
+          - value: "express"
+            label: "Express.js"
+            description: "Fast, unopinionated, minimalist web framework"
+          - value: "fastify"
+            label: "Fastify"
+            description: "Fast and low overhead web framework"
+      - name: "useDatabase"
+        displayName: "Use Database"
+        description: "Include database configuration"
+        type: "boolean"
+        required: false
+        defaultValue: true
+      - name: "databaseType"
+        displayName: "Database Type"
+        description: "Choose your database"
+        type: "choice"
+        required: false
+        choices:
+          - value: "postgresql"
+            label: "PostgreSQL"
+          - value: "mysql"
+            label: "MySQL"
+          - value: "mongodb"
+            label: "MongoDB"
+        conditional:
+          dependsOn: "useDatabase"
+          values: ["true"]
+
+  # Example template file
+  TemplateFileExample:
+    path: "src/app.js.j2"
+    content: |
+      const {{ framework }} = require('{{ framework }}');
+      const app = {{ framework }}();
+      
+      {% if useDatabase %}
+      const db = require('./db');
+      {% endif %}
+      
+      app.get('/health', (req, res) => {
+        res.json({ status: 'healthy', service: '{{ projectName }}' });
+      });
+      
+      module.exports = app;
+    contentType: "text/javascript"
+    size: 256
+    template: true
+
+  # Example parameter validation
+  ParameterValidationExample:
+    name: "port"
+    displayName: "Port Number"
+    description: "The port number for the server"
+    type: "integer"
+    required: false
+    defaultValue: 3000
+    validation:
+      minimum: 1024
+      maximum: 65535
