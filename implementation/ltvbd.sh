@@ -7,6 +7,7 @@ set -e  # Exit immediately if a command exits with a non-zero status
 
 # Default configuration
 INCLUDE_SLOW_TESTS=false
+VERBOSE_MODE=false
 
 # Help function
 show_help() {
@@ -16,9 +17,10 @@ show_help() {
     echo ""
     echo "Options:"
     echo "  --include-slow, -s    Include slow-running tests (marked with @pytest.mark.slow)"
+    echo "  --verbose, -v         Show full output from all commands (default: concise)"
     echo "  --help, -h           Show this help message"
     echo ""
-    echo "By default, slow tests are excluded for faster execution."
+    echo "By default, slow tests are excluded and output is concise for faster execution."
     echo "Total execution time: ~10s (fast) vs ~25s (with slow tests)"
 }
 
@@ -107,6 +109,10 @@ main() {
                 INCLUDE_SLOW_TESTS=true
                 shift
                 ;;
+            --verbose|-v)
+                VERBOSE_MODE=true
+                shift
+                ;;
             --help|-h)
                 show_help
                 exit 0
@@ -129,11 +135,41 @@ main() {
     
     # Step 1: Python Linting with pylint
     print_step "Step 1: Python Linting"
-    run_command "Running pylint linter" "pylint domains/observability/backend/functions/*/src/ shared/libraries/python/skafu_shared/ --score=yes --fail-under=9.9999"
+    
+    if [[ "$VERBOSE_MODE" == "true" ]]; then
+        run_command "Running pylint linter" "pylint domains/observability/backend/functions/*/src/ shared/libraries/python/skafu_shared/ --score=yes --fail-under=9.9999"
+    else
+        print_progress "Running pylint linter"
+        
+        PYLINT_OUTPUT=$(pylint domains/observability/backend/functions/*/src/ shared/libraries/python/skafu_shared/ --score=yes --fail-under=9.9999 2>&1)
+        if [ $? -eq 0 ]; then
+            # Extract and show only the score
+            SCORE=$(echo "$PYLINT_OUTPUT" | grep "Your code has been rated at" | tail -1)
+            echo "  $SCORE"
+            print_success "Running pylint linter completed"
+        else
+            echo "$PYLINT_OUTPUT"
+            print_error "Running pylint linter failed"
+            exit 1
+        fi
+    fi
     
     # Step 2: SAM Validate with Lint
     print_step "Step 2: SAM Template Validation"
-    run_command "Validating SAM template" "sam validate --lint"
+    
+    if [[ "$VERBOSE_MODE" == "true" ]]; then
+        run_command "Validating SAM template" "sam validate --lint"
+    else
+        print_progress "Validating SAM template"
+        
+        if sam validate --lint > /dev/null 2>&1; then
+            print_success "Validating SAM template completed"
+        else
+            print_error "Validating SAM template failed"
+            sam validate --lint
+            exit 1
+        fi
+    fi
     
     # Step 3: Backend Tests (excluding performance tests for speed)
     print_step "Step 3: Backend Tests (Unit + Integration)"
@@ -143,41 +179,87 @@ main() {
     
     # Find all function directories
     FUNCTION_DIRS=($(find domains/observability/backend/functions -mindepth 1 -maxdepth 1 -type d | sort))
+    TOTAL_TESTS=0
+    PASSED_TESTS=0
     
     for func_dir in "${FUNCTION_DIRS[@]}"; do
         if [[ -d "$func_dir/tests" ]]; then
             func_name=$(basename "$func_dir")
-            print_progress "Running tests for $func_name"
             
             # Change to function directory and run tests
             pushd "$func_dir" > /dev/null
             
             if [[ "$INCLUDE_SLOW_TESTS" == "true" ]]; then
-                PYTEST_CMD="PYTEST_CURRENT_TEST=1 python3 -m pytest tests/ -v --tb=short"
+                PYTEST_CMD="PYTEST_CURRENT_TEST=1 python3 -m pytest tests/ -q --tb=line"
             else
-                PYTEST_CMD="PYTEST_CURRENT_TEST=1 python3 -m pytest tests/ -v --tb=short -m 'not slow'"
+                PYTEST_CMD="PYTEST_CURRENT_TEST=1 python3 -m pytest tests/ -q --tb=line -m 'not slow'"
             fi
             
-            if ! eval "$PYTEST_CMD"; then
+            TEST_OUTPUT=$(eval "$PYTEST_CMD" 2>&1)
+            if [ $? -eq 0 ]; then
+                # Extract test count from output
+                TEST_COUNT=$(echo "$TEST_OUTPUT" | grep -E "^[0-9]+ passed" | cut -d' ' -f1)
+                if [[ -n "$TEST_COUNT" ]]; then
+                    TOTAL_TESTS=$((TOTAL_TESTS + TEST_COUNT))
+                    PASSED_TESTS=$((PASSED_TESTS + TEST_COUNT))
+                fi
+                echo "  ✅ $func_name: $TEST_COUNT tests passed"
+            else
                 popd > /dev/null
+                echo "$TEST_OUTPUT"
                 print_error "Tests failed for $func_name"
                 exit 1
             fi
             
             popd > /dev/null
-            print_success "Tests passed for $func_name"
         fi
     done
+    
+    echo "  📊 Total: $PASSED_TESTS/$TOTAL_TESTS tests passed"
     
     print_success "All function tests completed"
     
     # Step 4: SAM Build
     print_step "Step 4: SAM Build"
-    run_command "Building SAM application" "sam build"
+    
+    if [[ "$VERBOSE_MODE" == "true" ]]; then
+        run_command "Building SAM application" "sam build"
+    else
+        print_progress "Building SAM application"
+        
+        BUILD_OUTPUT=$(sam build 2>&1)
+        if [ $? -eq 0 ]; then
+            # Show only success summary
+            echo "$BUILD_OUTPUT" | grep -E "(Build Succeeded|Built Artifacts|Built Template)" | head -3
+            print_success "Building SAM application completed"
+        else
+            echo "$BUILD_OUTPUT"
+            print_error "Building SAM application failed"
+            exit 1
+        fi
+    fi
     
     # Step 5: SAM Deploy
     print_step "Step 5: SAM Deploy"
-    run_command "Deploying SAM application" "sam deploy"
+    
+    if [[ "$VERBOSE_MODE" == "true" ]]; then
+        run_command "Deploying SAM application" "sam deploy"
+    else
+        print_progress "Deploying SAM application"
+        
+        DEPLOY_OUTPUT=$(sam deploy 2>&1)
+        if [ $? -eq 0 ]; then
+            # Show only key deployment info and outputs
+            echo "$DEPLOY_OUTPUT" | grep -E "(Stack name|Region|Capabilities)" | head -3
+            echo "  ..."
+            echo "$DEPLOY_OUTPUT" | grep -A 20 "CloudFormation outputs from deployed stack"
+            print_success "Deploying SAM application completed"
+        else
+            echo "$DEPLOY_OUTPUT"
+            print_error "Deploying SAM application failed"
+            exit 1
+        fi
+    fi
     
     # Final Success Message
     echo -e "\n${GREEN}🎉 All steps completed successfully!${NC}"
