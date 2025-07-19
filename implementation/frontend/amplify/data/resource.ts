@@ -10,7 +10,14 @@ const schema = a.schema({
     configuration: a.json(),
     owner: a.string().required(),
     collaborators: a.string().array(),
-  }).authorization(allow => [allow.publicApiKey()]),
+  }).authorization(allow => [
+    // Owner can perform all operations on their projects
+    allow.owner(),
+    // Authenticated users can read all projects
+    allow.authenticated().to(['read']),
+    // Fallback: API key for development/testing
+    allow.publicApiKey()
+  ]),
 
   // Template Management (stubbed domain) 
   Template: a.model({
@@ -23,7 +30,14 @@ const schema = a.schema({
     author: a.string().required(),
     downloads: a.integer().default(0),
     rating: a.float().default(0),
-  }).authorization(allow => [allow.publicApiKey()]),
+  }).authorization(allow => [
+    // Author can perform all operations
+    allow.owner('author'),
+    // Authenticated users can read templates and update download counts
+    allow.authenticated().to(['read', 'update']),
+    // Fallback: API key for development/testing
+    allow.publicApiKey()
+  ]),
 
   // User profiles (for display purposes)
   UserProfile: a.model({
@@ -32,17 +46,24 @@ const schema = a.schema({
     displayName: a.string(),
     role: a.enum(['admin', 'developer', 'viewer']),
     preferences: a.json(),
-  }).authorization(allow => [allow.publicApiKey()]),
-}).authorization(allow => [allow.publicApiKey()]);
+  }).authorization(allow => [
+    // Users can manage their own profile
+    allow.owner(),
+    // Authenticated users can read other profiles (for collaboration)
+    allow.authenticated().to(['read']),
+    // Fallback: API key for development/testing
+    allow.publicApiKey()
+  ]),
+});
 
 export type Schema = ClientSchema<typeof schema>;
 
 export const data = defineData({
   schema,
   authorizationModes: {
-    // Using API Key for now since we're working with external Cognito pool
-    // TODO: Configure User Pool authentication once we establish proper connection
-    defaultAuthorizationMode: 'apiKey',
+    // Primary: User Pool authentication (via referenceAuth)
+    defaultAuthorizationMode: 'userPool',
+    // Secondary: API Key for development/testing
     apiKeyAuthorizationMode: { expiresInDays: 30 },
   },
 });
