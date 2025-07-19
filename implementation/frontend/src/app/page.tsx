@@ -1,6 +1,6 @@
 'use client';
 
-import { useGetProjectsQuery } from '@/store/apis/amplifyDataApi';
+import { useGetErrorEventsQuery, useSubscribeToErrorEventsQuery } from '@/store/apis/amplifyDataApi';
 import { useAppSelector } from '@/store/hooks';
 import { selectActiveSection } from '@/store/slices/uiSlice';
 
@@ -8,8 +8,11 @@ export default function Home() {
   // Test Redux integration
   const activeSection = useAppSelector(selectActiveSection);
   
-  // Test Amplify Data API integration
-  const { data: projects, isLoading, error } = useGetProjectsQuery();
+  // Test Amplify Data API integration with ErrorEvent model
+  const { data: errorEvents, isLoading, error } = useGetErrorEventsQuery({ limit: 10 });
+  
+  // Set up real-time subscription for live error streaming
+  const { data: liveErrorEvents } = useSubscribeToErrorEventsQuery();
 
   return (
     <div className="min-h-screen p-8 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
@@ -64,15 +67,21 @@ export default function Home() {
                 )}
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-gray-600 dark:text-gray-300">Projects Found:</span>
+                <span className="text-gray-600 dark:text-gray-300">Error Events:</span>
                 <span className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded">
-                  {projects?.length || 0}
+                  {errorEvents?.length || 0}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600 dark:text-gray-300">Live Streaming:</span>
+                <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">
+                  {liveErrorEvents?.length || 0} cached
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-gray-600 dark:text-gray-300">Auth Mode:</span>
                 <span className="bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-2 py-1 rounded text-sm">
-                  API Key
+                  User Pool + API Key
                 </span>
               </div>
             </div>
@@ -102,16 +111,16 @@ export default function Home() {
             </div>
             <div>
               <h3 className="text-lg font-semibold text-green-600 dark:text-green-400 mb-3">
-                📋 Mock Data APIs (Stubbed)
+                🚨 Real-time Error Streaming
               </h3>
               <ul className="space-y-2 text-gray-600 dark:text-gray-300">
-                <li>• Project Management</li>
-                <li>• Template Library</li>
-                <li>• User Profiles</li>
-                <li>• Settings & Preferences</li>
+                <li>• EventBridge Error Events</li>
+                <li>• Real-time GraphQL Subscriptions</li>
+                <li>• Complete Event Payload Storage</li>
+                <li>• Live Error Monitoring</li>
               </ul>
               <div className="mt-3 text-sm text-gray-500 dark:text-gray-400">
-                <strong>Auth:</strong> API Key → AppSync GraphQL
+                <strong>Auth:</strong> User Pool (read) + API Key (write) → AppSync GraphQL
               </div>
             </div>
           </div>
