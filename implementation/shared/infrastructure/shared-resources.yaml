@@ -52,38 +52,26 @@ Resources:
   
   # API Gateway
   ApiGateway:
-    Type: AWS::Serverless::Api
+    Type: AWS::ApiGateway::RestApi
     Properties:
-      StageName: !Ref Environment
       Name: !Sub 'skafu-api-${Environment}'
-      Cors:
-        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
-        AllowHeaders: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token,X-Correlation-Id'"
-        AllowOrigin: !Sub "'${CorsOrigins}'"
-        AllowCredentials: true
-      Auth:
-        DefaultAuthorizer: CognitoAuthorizer
-        Authorizers:
-          CognitoAuthorizer:
-            UserPoolArn: !GetAtt UserPool.Arn
-            Identity:
-              Header: Authorization
-      GatewayResponses:
-        DEFAULT_4XX:
-          ResponseParameters:
-            Headers:
-              Access-Control-Allow-Origin: !Sub "'${CorsOrigins}'"
-              Access-Control-Allow-Credentials: "'true'"
-        DEFAULT_5XX:
-          ResponseParameters:
-            Headers:
-              Access-Control-Allow-Origin: !Sub "'${CorsOrigins}'"
-              Access-Control-Allow-Credentials: "'true'"
-      TracingEnabled: true
+      Description: Skafu API Gateway
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+      Policy:
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: 'execute-api:Invoke'
+            Resource: '*'
       Tags:
-        Environment: !Ref Environment
-        Project: Skafu
-        ManagedBy: SAM
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: Skafu
+        - Key: ManagedBy
+          Value: SAM
   
   # API Gateway Root Resource for /api/v1
   ApiV1Resource:
@@ -160,10 +148,6 @@ Resources:
       RefreshTokenValidity: 30
       ReadAttributes:
         - email
-        - name
-        - family_name
-        - given_name
-      WriteAttributes:
         - name
         - family_name
         - given_name

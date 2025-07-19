@@ -2,20 +2,21 @@
 
 ## Overview
 
-The Skafu frontend is a modern React application built with AWS Amplify Gen2, implementing a component-based architecture using Cloudscape Design System, Redux Toolkit for state management, and TypeScript for type safety. The application follows best practices for scalability, maintainability, and user experience.
+The Skafu frontend is a modern Next.js application built with AWS Amplify Gen2, implementing a component-based architecture using Cloudscape Design System, Redux Toolkit for state management, and TypeScript for type safety. The application follows best practices for scalability, maintainability, and user experience with seamless AWS integration.
 
 ## Technology Stack
 
 ### Core Technologies
+- **Next.js 14**: React framework with app directory and file-based routing
 - **React 18**: Modern React with hooks and concurrent features
 - **TypeScript**: Type-safe JavaScript with strong typing
 - **AWS Amplify Gen2**: Full-stack framework for authentication and data management
 - **Cloudscape Design System**: AWS's design system for consistent UI components
-- **Redux Toolkit (RTK)**: State management with modern Redux patterns
-- **React Router v6**: Client-side routing with modern API
+- **Redux Toolkit (RTK)**: State management with dual API pattern (Amplify Data + API Gateway)
+- **@aws-amplify/ui-react**: Pre-built authentication components
 
 ### Build and Development Tools
-- **Vite**: Fast build tool and development server
+- **Next.js Built-in Bundling**: Zero-configuration build system
 - **ESLint**: Code linting and quality enforcement
 - **Prettier**: Code formatting
 - **Jest**: Unit testing framework
@@ -24,90 +25,131 @@ The Skafu frontend is a modern React application built with AWS Amplify Gen2, im
 
 ## Architecture Patterns
 
-### Component Architecture
+### Next.js App Directory Structure
 
 ```
-src/
-├── components/           # Reusable UI components
-│   ├── common/          # Generic components
-│   ├── forms/           # Form components
-│   ├── layout/          # Layout components
-│   └── ui/              # UI-specific components
-├── features/            # Feature-based organization
-│   ├── projects/        # Project management features
-│   ├── templates/       # Template management features
-│   ├── ai/             # AI integration features
-│   └── auth/           # Authentication features
-├── pages/              # Page-level components
-├── hooks/              # Custom React hooks
-├── services/           # API and service layer
-├── store/              # Redux store configuration
-├── types/              # TypeScript type definitions
-├── utils/              # Utility functions
-└── constants/          # Application constants
+app/
+├── layout.tsx                    # Root layout with Amplify Authenticator
+├── page.tsx                      # Dashboard homepage
+├── globals.css                   # Global styles and Cloudscape imports
+├── lib/
+│   ├── amplify/
+│   │   ├── client.ts            # Amplify Data client setup
+│   │   ├── schema.ts            # Data models definition
+│   │   └── auth.ts              # Authentication configuration
+│   ├── store/
+│   │   ├── index.ts             # Redux store configuration
+│   │   ├── amplifyApi.ts        # Custom RTK Query for Amplify Data
+│   │   ├── observabilityApi.ts  # Standard RTK Query for API Gateway
+│   │   └── middleware/
+│   │       └── subscriptions.ts # Real-time subscription middleware
+│   └── utils/
+├── projects/
+│   ├── page.tsx                 # Projects list page
+│   ├── create/
+│   │   └── page.tsx            # Create project page
+│   ├── [projectId]/
+│   │   ├── page.tsx            # Project detail hub
+│   │   ├── edit/
+│   │   │   └── page.tsx        # Edit project page
+│   │   └── deployments/
+│   │       └── page.tsx        # Project deployments page
+│   └── components/
+│       ├── ProjectCard.tsx
+│       ├── ProjectForm.tsx
+│       └── ProjectHeroSection.tsx
+├── templates/
+│   ├── page.tsx                # Templates list page
+│   ├── [templateId]/
+│   │   └── page.tsx           # Template detail hub
+│   └── components/
+├── observability/
+│   ├── page.tsx               # Observability hub
+│   ├── metrics/
+│   │   └── page.tsx          # Metrics dashboard
+│   ├── logs/
+│   │   └── page.tsx          # Logs viewer
+│   └── alerts/
+│       └── page.tsx          # Alert management
+└── settings/
+    └── page.tsx               # Settings page
 ```
 
-### Feature-Based Organization
+### Domain-Based Organization with Next.js App Router
 
 ```typescript
-// Feature structure example: features/projects/
-projects/
-├── components/          # Project-specific components
+// Domain structure example: app/projects/
+app/projects/
+├── page.tsx                     # Projects list page
+├── create/
+│   └── page.tsx                # Create project page
+├── [projectId]/
+│   ├── page.tsx               # Project detail hub
+│   ├── edit/
+│   │   └── page.tsx          # Edit project page
+│   └── loading.tsx           # Loading UI
+├── components/                 # Project-specific components
 │   ├── ProjectCard.tsx
 │   ├── ProjectForm.tsx
-│   └── ProjectList.tsx
-├── hooks/              # Project-specific hooks
+│   ├── ProjectHeroSection.tsx
+│   └── RelatedResourcesCard.tsx
+├── hooks/                     # Project-specific hooks
 │   ├── useProjects.ts
-│   └── useProjectForm.ts
-├── services/           # Project-specific services
-│   └── projectService.ts
-├── store/              # Project-specific state
-│   ├── projectSlice.ts
-│   └── projectSelectors.ts
-├── types/              # Project-specific types
-│   └── project.types.ts
-├── utils/              # Project-specific utilities
-│   └── projectUtils.ts
-└── pages/              # Project-specific pages
-    ├── ProjectListPage.tsx
-    ├── ProjectDetailPage.tsx
-    └── CreateProjectPage.tsx
+│   └── useProjectSubscriptions.ts
+└── types/                     # Project-specific types
+    └── project.types.ts
+
+// Shared library structure: app/lib/
+app/lib/
+├── store/                     # Redux configuration
+│   ├── index.ts              # Store setup
+│   ├── amplifyApi.ts         # Amplify Data RTK Query
+│   └── observabilityApi.ts   # API Gateway RTK Query
+├── amplify/                   # Amplify configuration
+│   ├── schema.ts             # Data models
+│   └── client.ts             # Data client
+└── utils/                     # Shared utilities
 ```
 
-## State Management with Redux Toolkit
+## State Management with Redux Toolkit and Amplify Data
 
-### Store Configuration
+### Dual API Pattern Store Configuration
 
 ```typescript
-// store/index.ts
+// app/lib/store/index.ts
 import { configureStore } from '@reduxjs/toolkit';
 import { setupListeners } from '@reduxjs/toolkit/query';
-import { projectApi } from '../features/projects/store/projectApi';
-import { templateApi } from '../features/templates/store/templateApi';
-import { aiApi } from '../features/ai/store/aiApi';
-import authSlice from '../features/auth/store/authSlice';
+import { projectApi } from './amplifyApi';
+import { templateApi } from './templateApi';
+import { userApi } from './userApi';
+import { observabilityApi } from './observabilityApi';
+import { subscriptionMiddleware } from './middleware/subscriptions';
 import uiSlice from './slices/uiSlice';
 
 export const store = configureStore({
   reducer: {
-    // RTK Query APIs
+    // Amplify Data APIs (for read models)
     [projectApi.reducerPath]: projectApi.reducer,
     [templateApi.reducerPath]: templateApi.reducer,
-    [aiApi.reducerPath]: aiApi.reducer,
+    [userApi.reducerPath]: userApi.reducer,
     
-    // Regular slices
-    auth: authSlice,
+    // API Gateway APIs (for commands/observability)
+    [observabilityApi.reducerPath]: observabilityApi.reducer,
+    
+    // UI State
     ui: uiSlice,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
-        ignoredActions: ['persist/PERSIST', 'persist/REHYDRATE'],
+        ignoredActions: ['subscriptions/setup', 'subscriptions/cleanup'],
       },
     })
       .concat(projectApi.middleware)
       .concat(templateApi.middleware)
-      .concat(aiApi.middleware),
+      .concat(userApi.middleware)
+      .concat(observabilityApi.middleware)
+      .concat(subscriptionMiddleware),
 });
 
 setupListeners(store.dispatch);
@@ -116,58 +158,105 @@ export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
 ```
 
-### RTK Query API Slices
+### Custom RTK Query with Amplify Data
 
 ```typescript
-// features/projects/store/projectApi.ts
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import { Project, CreateProjectRequest, UpdateProjectRequest } from '../types/project.types';
+// app/lib/store/amplifyApi.ts
+import { createApi, BaseQueryFn } from '@reduxjs/toolkit/query/react';
+import { generateClient } from 'aws-amplify/data';
+import type { Schema } from '../amplify/schema';
 
+const client = generateClient<Schema>();
+
+// Custom baseQuery for Amplify Data
+const amplifyBaseQuery: BaseQueryFn<
+  {
+    model: keyof Schema;
+    operation: 'list' | 'get' | 'create' | 'update' | 'delete';
+    data?: any;
+    id?: string;
+    filter?: any;
+  },
+  unknown,
+  unknown
+> = async ({ model, operation, data, id, filter }) => {
+  try {
+    switch (operation) {
+      case 'list':
+        const listResult = await client.models[model].list(filter ? { filter } : undefined);
+        return { data: listResult.data };
+        
+      case 'get':
+        if (!id) throw new Error('ID required for get operation');
+        const getResult = await client.models[model].get({ id });
+        return { data: getResult.data };
+        
+      case 'create':
+        const createResult = await client.models[model].create(data);
+        return { data: createResult.data };
+        
+      case 'update':
+        if (!id) throw new Error('ID required for update operation');
+        const updateResult = await client.models[model].update({ id, ...data });
+        return { data: updateResult.data };
+        
+      case 'delete':
+        if (!id) throw new Error('ID required for delete operation');
+        const deleteResult = await client.models[model].delete({ id });
+        return { data: deleteResult.data };
+        
+      default:
+        throw new Error(`Unsupported operation: ${operation}`);
+    }
+  } catch (error) {
+    return { error: { status: 'FETCH_ERROR', error: error.message } };
+  }
+};
+
+// Project API slice using Amplify Data
 export const projectApi = createApi({
   reducerPath: 'projectApi',
-  baseQuery: fetchBaseQuery({
-    baseUrl: '/api/v1/projects',
-    prepareHeaders: (headers, { getState }) => {
-      const token = (getState() as any).auth.token;
-      if (token) {
-        headers.set('authorization', `Bearer ${token}`);
-      }
-      return headers;
-    },
-  }),
-  tagTypes: ['Project'],
+  baseQuery: amplifyBaseQuery,
+  tagTypes: ['Project', 'ProjectMember'],
   endpoints: (builder) => ({
-    // Queries
-    getProjects: builder.query<Project[], void>({
-      query: () => '',
+    getProjects: builder.query({
+      query: (filter) => ({ 
+        model: 'Project', 
+        operation: 'list',
+        filter 
+      }),
       providesTags: ['Project'],
     }),
-    getProject: builder.query<Project, string>({
-      query: (id) => `/${id}`,
+    getProject: builder.query({
+      query: (id) => ({ 
+        model: 'Project', 
+        operation: 'get', 
+        id 
+      }),
       providesTags: (result, error, id) => [{ type: 'Project', id }],
     }),
-    
-    // Mutations
-    createProject: builder.mutation<Project, CreateProjectRequest>({
-      query: (project) => ({
-        url: '',
-        method: 'POST',
-        body: project,
+    createProject: builder.mutation({
+      query: (data) => ({ 
+        model: 'Project', 
+        operation: 'create', 
+        data 
       }),
       invalidatesTags: ['Project'],
     }),
-    updateProject: builder.mutation<Project, UpdateProjectRequest>({
-      query: ({ id, ...patch }) => ({
-        url: `/${id}`,
-        method: 'PATCH',
-        body: patch,
+    updateProject: builder.mutation({
+      query: ({ id, ...data }) => ({ 
+        model: 'Project', 
+        operation: 'update', 
+        id, 
+        data 
       }),
       invalidatesTags: (result, error, { id }) => [{ type: 'Project', id }],
     }),
-    deleteProject: builder.mutation<void, string>({
-      query: (id) => ({
-        url: `/${id}`,
-        method: 'DELETE',
+    deleteProject: builder.mutation({
+      query: (id) => ({ 
+        model: 'Project', 
+        operation: 'delete', 
+        id 
       }),
       invalidatesTags: ['Project'],
     }),
@@ -183,69 +272,112 @@ export const {
 } = projectApi;
 ```
 
-## Cloudscape Design System Integration
+## Cloudscape Design System Integration with Hub Pattern
 
-### Theme Configuration
+### Root Layout with Amplify Authentication
 
 ```typescript
-// components/layout/AppLayout.tsx
-import { AppLayout, SideNavigation, TopNavigation } from '@cloudscape-design/components';
+// app/layout.tsx
+'use client';
+
+import { Amplify } from 'aws-amplify';
+import { Authenticator } from '@aws-amplify/ui-react';
+import '@aws-amplify/ui-react/styles.css';
+import '@cloudscape-design/global-styles/index.css';
 import { applyMode, Mode } from '@cloudscape-design/global-styles';
-import { useSelector } from 'react-redux';
-import { RootState } from '../../store';
+import { Provider } from 'react-redux';
+import { store } from './lib/store';
+import amplifyConfig from './lib/amplify/auth';
 
-interface Props {
+Amplify.configure(amplifyConfig);
+applyMode(Mode.Light);
+
+export default function RootLayout({
+  children,
+}: {
   children: React.ReactNode;
+}) {
+  return (
+    <html lang="en">
+      <body>
+        <Authenticator.Provider>
+          <Authenticator hideSignUp={false}>
+            <Provider store={store}>
+              <main>{children}</main>
+            </Provider>
+          </Authenticator>
+        </Authenticator.Provider>
+      </body>
+    </html>
+  );
 }
+```
 
-export const ApplicationLayout: React.FC<Props> = ({ children }) => {
-  const { theme } = useSelector((state: RootState) => state.ui);
+### Hub Pattern Implementation
+
+```typescript
+// app/projects/[projectId]/page.tsx
+'use client';
+
+import { useParams } from 'next/navigation';
+import { 
+  SpaceBetween,
+  Header,
+  Container,
+  Grid,
+  Button,
+  ColumnLayout,
+  Box
+} from '@cloudscape-design/components';
+import { useGetProjectQuery } from '../../lib/store/amplifyApi';
+import { ProjectHeroSection } from '../components/ProjectHeroSection';
+import { RelatedTemplatesCard } from '../components/RelatedTemplatesCard';
+import { TeamMembersCard } from '../components/TeamMembersCard';
+import { RecentDeploymentsCard } from '../components/RecentDeploymentsCard';
+
+export default function ProjectDetailHub() {
+  const { projectId } = useParams();
+  const { data: project, isLoading } = useGetProjectQuery(projectId);
   
-  React.useEffect(() => {
-    applyMode(theme as Mode);
-  }, [theme]);
-
-  const navigationItems = [
-    {
-      type: 'section',
-      text: 'Projects',
-      items: [
-        { type: 'link', text: 'All Projects', href: '/projects' },
-        { type: 'link', text: 'Create Project', href: '/projects/create' },
-      ],
-    },
-    {
-      type: 'section',
-      text: 'Templates',
-      items: [
-        { type: 'link', text: 'Template Library', href: '/templates' },
-        { type: 'link', text: 'My Templates', href: '/templates/my' },
-      ],
-    },
-    {
-      type: 'section',
-      text: 'AI Assistant',
-      items: [
-        { type: 'link', text: 'Analysis', href: '/ai/analysis' },
-        { type: 'link', text: 'Code Generation', href: '/ai/generation' },
-      ],
-    },
-  ];
+  if (isLoading) return <div>Loading project...</div>;
+  if (!project) return <div>Project not found</div>;
 
   return (
-    <AppLayout
-      headerSelector="#header"
-      navigation={
-        <SideNavigation
-          header={{ text: 'Skafu', href: '/' }}
-          items={navigationItems}
-        />
-      }
-      content={children}
-      toolsHide
-    />
+    <SpaceBetween direction="vertical" size="l">
+      {/* Hero Section - Central Resource Overview */}
+      <ProjectHeroSection project={project} />
+      
+      {/* Quick Actions Bar */}
+      <Container>
+        <SpaceBetween direction="horizontal" size="s">
+          <Button variant="primary" iconName="upload">
+            Deploy
+          </Button>
+          <Button iconName="copy">
+            Clone Project
+          </Button>
+          <Button iconName="share">
+            Share
+          </Button>
+          <Button iconName="edit">
+            Edit Settings
+          </Button>
+        </SpaceBetween>
+      </Container>
+      
+      {/* Related Resources Grid */}
+      <Grid gridDefinition={[
+        { colspan: { default: 12, s: 6, m: 4 } },
+        { colspan: { default: 12, s: 6, m: 4 } },
+        { colspan: { default: 12, s: 12, m: 4 } }
+      ]}>
+        <RelatedTemplatesCard projectId={projectId} />
+        <TeamMembersCard projectId={projectId} />
+        <RecentDeploymentsCard projectId={projectId} />
+      </Grid>
+    </SpaceBetween>
   );
-};
+}
 ```
 
 ### Custom Components with Cloudscape
@@ -339,97 +471,104 @@ export function DataTable<T>({
 }
 ```
 
-## Authentication with AWS Amplify
+## Authentication with @aws-amplify/ui-react
 
-### Amplify Configuration
+### Amplify Data Schema with Authorization
 
 ```typescript
-// amplify/auth/resource.ts
-import { defineAuth } from '@aws-amplify/backend';
+// app/lib/amplify/schema.ts
+import { a, defineData, type ClientSchema } from '@aws-amplify/backend';
 
-export const auth = defineAuth({
-  loginWith: {
-    email: true,
-  },
-  userAttributes: {
-    email: {
-      required: true,
-      mutable: true,
-    },
-    name: {
-      required: true,
-      mutable: true,
-    },
-  },
+const schema = a.schema({
+  // Project Model with Role-based Authorization
+  Project: a.model({
+    id: a.id().required(),
+    name: a.string().required(),
+    description: a.string(),
+    status: a.enum(['draft', 'active', 'archived']),
+    templateId: a.id().required(),
+    ownerId: a.id().required(),
+    createdAt: a.datetime(),
+    updatedAt: a.datetime(),
+    
+    // Relationships
+    template: a.belongsTo('Template', 'templateId'),
+    owner: a.belongsTo('User', 'ownerId'),
+    members: a.hasMany('ProjectMember', 'projectId'),
+  }).authorization(allow => [
+    allow.owner(),
+    allow.groups(['admin']).to(['read', 'create', 'update', 'delete']),
+    allow.groups(['developer']).to(['read', 'create', 'update']),
+    allow.groups(['viewer']).to(['read'])
+  ]),
+
+  // User Model
+  User: a.model({
+    id: a.id().required(),
+    email: a.email().required(),
+    name: a.string().required(),
+    role: a.enum(['admin', 'developer', 'viewer']),
+    preferences: a.json(),
+    
+    // Relationships
+    ownedProjects: a.hasMany('Project', 'ownerId'),
+    templates: a.hasMany('Template', 'authorId'),
+  }).authorization(allow => [
+    allow.owner(),
+    allow.authenticated().to(['read']),
+    allow.groups(['admin']).to(['read', 'update'])
+  ]),
+
+  // Template Model
+  Template: a.model({
+    id: a.id().required(),
+    name: a.string().required(),
+    description: a.string(),
+    category: a.enum(['react', 'nodejs', 'python', 'nextjs']),
+    framework: a.string().required(),
+    authorId: a.id().required(),
+    
+    // Relationships
+    author: a.belongsTo('User', 'authorId'),
+    projects: a.hasMany('Project', 'templateId'),
+  }).authorization(allow => [
+    allow.owner(),
+    allow.authenticated().to(['read']),
+    allow.groups(['admin']).to(['read', 'create', 'update', 'delete'])
+  ]),
 });
+
+export type Schema = ClientSchema<typeof schema>;
+export const data = defineData({ schema });
 ```
 
-### Authentication Context
+### Automatic Authentication with Authenticator
 
 ```typescript
-// contexts/AuthContext.tsx
-import { createContext, useContext, useEffect, useState } from 'react';
-import { getCurrentUser, signOut, AuthUser } from 'aws-amplify/auth';
-import { Hub } from 'aws-amplify/utils';
+// app/layout.tsx (Authentication is handled automatically)
+'use client';
 
-interface AuthContextType {
-  user: AuthUser | null;
-  loading: boolean;
-  signOut: () => Promise<void>;
+import { Authenticator } from '@aws-amplify/ui-react';
+import '@aws-amplify/ui-react/styles.css';
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en">
+      <body>
+        <Authenticator.Provider>
+          <Authenticator hideSignUp={false}>
+            {/* All authenticated content */}
+            <Provider store={store}>
+              <main>{children}</main>
+            </Provider>
+          </Authenticator>
+        </Authenticator.Provider>
+      </body>
+    </html>
+  );
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
-
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    getCurrentUser()
-      .then((user) => {
-        setUser(user);
-      })
-      .catch(() => {
-        setUser(null);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-
-    const hubListener = (data: any) => {
-      switch (data.payload.event) {
-        case 'signIn':
-          setUser(data.payload.data);
-          break;
-        case 'signOut':
-          setUser(null);
-          break;
-      }
-    };
-
-    Hub.listen('auth', hubListener);
-
-    return () => Hub.remove('auth', hubListener);
-  }, []);
-
-  const handleSignOut = async () => {
-    await signOut();
-  };
-
-  return (
-    <AuthContext.Provider value={{ user, loading, signOut: handleSignOut }}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
+// No custom authentication context needed - Authenticator handles everything
 ```
 
 ## Custom Hooks
@@ -654,32 +793,55 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
 );
 ```
 
-## Performance Optimization
+## Performance Optimization with Next.js
 
-### Lazy Loading
+### Automatic Code Splitting and Lazy Loading
 
 ```typescript
-// routes/AppRoutes.tsx
-import { lazy, Suspense } from 'react';
-import { Routes, Route } from 'react-router-dom';
-import { LoadingSpinner } from '../components/common/LoadingSpinner';
+// Next.js automatically code splits by page
+// app/projects/loading.tsx - Automatic loading UI
+export default function Loading() {
+  return (
+    <div className="loading-container">
+      <Spinner size="large" />
+      <p>Loading projects...</p>
+    </div>
+  );
+}
 
-// Lazy load page components
-const ProjectListPage = lazy(() => import('../features/projects/pages/ProjectListPage'));
-const ProjectDetailPage = lazy(() => import('../features/projects/pages/ProjectDetailPage'));
-const CreateProjectPage = lazy(() => import('../features/projects/pages/CreateProjectPage'));
-const TemplateLibraryPage = lazy(() => import('../features/templates/pages/TemplateLibraryPage'));
+// app/projects/error.tsx - Automatic error boundary
+'use client';
 
-export const AppRoutes: React.FC = () => (
-  <Suspense fallback={<LoadingSpinner />}>
-    <Routes>
-      <Route path="/" element={<ProjectListPage />} />
-      <Route path="/projects" element={<ProjectListPage />} />
-      <Route path="/projects/create" element={<CreateProjectPage />} />
-      <Route path="/projects/:id" element={<ProjectDetailPage />} />
-      <Route path="/templates" element={<TemplateLibraryPage />} />
-    </Routes>
-  </Suspense>
+import { Alert, Button } from '@cloudscape-design/components';
+
+export default function Error({
+  error,
+  reset,
+}: {
+  error: Error;
+  reset: () => void;
+}) {
+  return (
+    <Alert
+      type="error"
+      header="Something went wrong"
+      action={
+        <Button onClick={reset}>
+          Try again
+        </Button>
+      }
+    >
+      {error.message}
+    </Alert>
+  );
+}
+
+// Dynamic imports for heavy components
+import dynamic from 'next/dynamic';
+
+const ProjectAnalytics = dynamic(
+  () => import('../components/ProjectAnalytics'),
+  { loading: () => <Spinner /> }
 );
 ```
 
@@ -859,67 +1021,92 @@ describe('ProjectListPage', () => {
 });
 ```
 
-## Deployment Configuration
+## Deployment Configuration with Next.js and Amplify
 
-### Amplify Hosting
+### Next.js Configuration for Amplify Hosting
 
 ```typescript
-// amplify/backend.ts
-import { defineBackend } from '@aws-amplify/backend';
-import { auth } from './auth/resource';
-import { data } from './data/resource';
-
-const backend = defineBackend({
-  auth,
-  data,
-});
-
-// Configure hosting
-backend.addOutput({
-  custom: {
-    hostedZoneId: process.env.HOSTED_ZONE_ID,
-    domainName: process.env.DOMAIN_NAME,
-    certificateArn: process.env.CERTIFICATE_ARN,
+// next.config.js
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  output: 'export', // Enable static export for Amplify Hosting
+  trailingSlash: true,
+  images: {
+    unoptimized: true // Required for static export
   },
-});
+  // Client-side rendering configuration
+  experimental: {
+    // Enable latest features
+  }
+};
+
+module.exports = nextConfig;
 ```
 
-### Build Configuration
+### Amplify Hosting Build Configuration
+
+```yaml
+# amplify.yml
+version: 1
+backend:
+  phases:
+    build:
+      commands:
+        - npm ci --cache .npm --prefer-offline
+        - npx ampx generate
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - npm ci --cache .npm --prefer-offline
+    build:
+      commands:
+        - npm run build
+  artifacts:
+    baseDirectory: out
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - .next/cache/**/*
+      - .npm/**/*
+```
+
+### Environment Configuration
 
 ```typescript
-// vite.config.ts
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import path from 'path';
+// app/lib/amplify/auth.ts
+import type { ResourcesConfig } from 'aws-amplify';
 
-export default defineConfig({
-  plugins: [react()],
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-    },
-  },
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          cloudscape: ['@cloudscape-design/components'],
-          redux: ['@reduxjs/toolkit', 'react-redux'],
-        },
+const amplifyConfig: ResourcesConfig = {
+  Auth: {
+    Cognito: {
+      userPoolId: process.env.NEXT_PUBLIC_AMPLIFY_USER_POOL_ID!,
+      userPoolClientId: process.env.NEXT_PUBLIC_AMPLIFY_USER_POOL_CLIENT_ID!,
+      signUpVerificationMethod: 'code',
+      loginWith: {
+        email: true,
+        username: false,
+        phone: false,
       },
     },
   },
-  server: {
-    port: 3000,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3001',
-        changeOrigin: true,
+  API: {
+    GraphQL: {
+      endpoint: process.env.NEXT_PUBLIC_AMPLIFY_GRAPHQL_ENDPOINT!,
+      region: process.env.NEXT_PUBLIC_AMPLIFY_REGION!,
+      defaultAuthMode: 'userPool',
+    },
+    REST: {
+      observability: {
+        endpoint: process.env.NEXT_PUBLIC_API_GATEWAY_ENDPOINT!,
+        region: process.env.NEXT_PUBLIC_AMPLIFY_REGION!,
       },
     },
   },
-});
+};
+
+export default amplifyConfig;
 ```
 
-This frontend architecture provides a robust, scalable, and maintainable foundation for the Skafu application with modern React patterns, AWS integration, and comprehensive testing capabilities.
+This Next.js frontend architecture provides a robust, scalable, and maintainable foundation for the Skafu application with seamless AWS Amplify Gen2 integration, dual API patterns for CQRS, Cloudscape hub pattern navigation, and comprehensive real-time capabilities.

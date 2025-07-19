@@ -1,24 +1,26 @@
-# 🚀 Skafu Implementation Plan - Observability-First MVP
+# 🚀 Skafu Implementation Plan - Observability Frontend MVP
 
 ## Executive Summary
 
-Implementation plan for Skafu MVP focusing on the **Observability Domain** with complete infrastructure, security, and monitoring capabilities.
+Implementation plan for Skafu MVP focusing on **Observability Domain Frontend** with Next.js, real observability features, and comprehensive UI patterns while stubbing non-observability domains with mock data.
 
 ## 📋 Implementation Scope
 
 ### ✅ **What We're Building:**
-- **Frontend**: Complete React SPA with all planned pages (observability features functional)
+- **Frontend**: Complete Next.js SPA with real observability features functional
 - **Backend**: Full AWS serverless infrastructure with observability domain APIs
 - **Infrastructure**: Complete AWS SAM templates for observability domain only
 - **Security**: Full Cognito authentication, IAM roles, encryption, validation
 - **Monitoring**: Complete CloudWatch, X-Ray, structured logging, alerts
 - **CI/CD**: Full GitHub Actions pipeline with Git Flow (develop → main)
-- **Data Access**: Event sourcing with DynamoDB event store and CQRS pattern (for other domains and error analytics, not for core observability data retrieval)
+- **Data Access**: Event sourcing with DynamoDB event store and CQRS pattern
+- **Observability Features**: Real metrics, logs, traces, alerts, cost monitoring
 
 ### 🚧 **What We're Stubbing:**
-- **Domains**: Project Management, Template Management, AI Integration, GitHub Integration
-- **APIs**: Stub endpoints that return mock data for non-observability features
-- **Infrastructure**: Only AWS resources needed for observability domain
+- **Non-Observability Domains**: Project Management, Template Management, AI Integration
+- **Frontend**: Mock data and stubbed APIs for non-observability features
+- **APIs**: Mock RTK Query responses for stubbed domains only
+- **Real-time**: Simulated subscription patterns for non-observability features
 
 ## 🏗️ Implementation Phases
 
@@ -218,67 +220,131 @@ implementation/
 ### **Phase 3: Frontend Implementation (Week 3-4)**
 
 #### **Pre-Implementation Requirements:**
-- [ ] **Design Review**: Complete detailed review of frontend architecture
-- [ ] **Q&A Session**: Conduct comprehensive Q&A session (up to 20 questions) covering:
-  - [ ] Page structure and routing
-  - [ ] Component architecture and reusability
-  - [ ] Redux slices and state management
-  - [ ] API integration and data flow
-  - [ ] Authentication flow and user experience
-  - [ ] Observability feature implementation
-  - [ ] Cloudscape component usage
-  - [ ] Responsive design and accessibility
-  - [ ] Error handling and user feedback
-  - [ ] Performance optimization
-  - [ ] **Final Question**: Anything else to add before implementation?
+- [x] **Design Review**: Complete detailed review of frontend architecture  
+- [x] **Q&A Session**: Conduct comprehensive Q&A session (30 yes/no questions) covering:
+  - [x] Next.js app directory routing vs React Router
+  - [x] Client-side rendering for real-time capabilities
+  - [x] @aws-amplify/ui-react authentication components
+  - [x] Dual API pattern (Amplify Data + API Gateway)
+  - [x] Custom RTK Query baseQuery for Amplify Data
+  - [x] Subscription middleware for real-time updates
+  - [x] Cloudscape hub pattern implementation
+  - [x] Redux Toolkit store configuration
+  - [x] File-based routing structure
+  - [x] AWS Amplify Hosting deployment
+  - [x] **Final Question**: Architecture alignment confirmed ✅
+
+#### **Updated Architecture Decisions:**
+- **Framework**: Next.js 14 with app directory (not React + Vite)
+- **Routing**: File-based routing with app directory (not React Router)
+- **Authentication**: @aws-amplify/ui-react Authenticator (not custom components)
+- **Data Layer**: Dual API pattern - Amplify Data (reads) + API Gateway (commands/observability)
+- **State Management**: Custom RTK Query baseQuery using Amplify Data client
+- **Real-time**: Subscription middleware managing Amplify Data subscriptions
+- **Navigation**: Hub pattern for detail pages with contextual resource navigation
+- **Deployment**: AWS Amplify Hosting with static export
 
 #### **Implementation Tasks:**
-- [ ] **3.1 Complete SPA Architecture**
-  - [ ] Set up React Router for navigation
-  - [ ] Configure Redux Toolkit store
-  - [ ] Set up RTK Query for API integration
-  - [ ] Configure Cloudscape Design System
-  - [ ] Set up authentication context
-  - [ ] Implement error boundaries
-  - [ ] Configure responsive design
+- [ ] **3.1 Next.js App Architecture**
+  - [ ] Configure Next.js 14 with app directory structure
+  - [ ] Set up client-side rendering configuration
+  - [ ] Configure Redux Toolkit store with dual API pattern
+  - [ ] Create custom RTK Query baseQuery for Amplify Data
+  - [ ] Implement subscription middleware for real-time updates
+  - [ ] Configure Cloudscape Design System integration
+  - [ ] Set up @aws-amplify/ui-react Authenticator
+  - [ ] Implement error boundaries with Next.js patterns
 
-- [ ] **3.2 All Planned Pages**
-  - [ ] Implement dashboard page
-  - [ ] Implement projects page (stubbed)
-  - [ ] Implement templates page (stubbed)
-  - [ ] Implement observability hub page
-  - [ ] Implement metrics dashboard page
-  - [ ] Implement alert management page
-  - [ ] Implement security events page
-  - [ ] Implement system health page
-  - [ ] Implement settings page
-  - [ ] Implement user profile page
-  - [ ] Implement login/registration pages
+- [ ] **3.2 Amplify Data Integration**
+  - [ ] Define Amplify Data schema models (Project, Template, User)
+  - [ ] Set up Amplify Data client with TypeScript support
+  - [ ] Create domain-specific RTK Query API slices using Amplify Data
+  - [ ] Implement real-time subscription management
+  - [ ] Configure authorization rules for data models
+  - [ ] Set up optimistic updates for mutations
+  - [ ] Implement cache invalidation strategies
 
-- [ ] **3.3 Observability Features**
-  - [ ] Implement real-time metrics dashboard
-  - [ ] Implement alert creation and management
-  - [ ] Implement security event visualization
-  - [ ] Add data visualization components
-  - [ ] Implement real-time updates
-  - [ ] Add filtering and search capabilities
+- [ ] **3.3 Next.js App Directory Pages**
+  - [ ] Root layout with Amplify Authenticator
+  - [ ] Dashboard page (/) with real observability overview widgets
+  - [ ] Projects list (/projects) with hub pattern navigation - stubbed
+  - [ ] Project detail hub (/projects/[id]) with related resources - stubbed
+  - [ ] Templates list (/templates) - stubbed with mock data
+  - [ ] Template detail hub (/templates/[id]) - stubbed
+  - [ ] Observability hub (/observability) - fully functional with real data
+  - [ ] Metrics dashboard (/observability/metrics) - real CloudWatch integration
+  - [ ] Logs viewer (/observability/logs) - real CloudWatch Logs integration
+  - [ ] Traces viewer (/observability/traces) - real X-Ray integration
+  - [ ] Alerts management (/observability/alerts) - real CloudWatch Alarms
+  - [ ] Settings page (/settings)
+  - [ ] User profile page (/profile)
 
-- [ ] **3.4 Authentication & Navigation**
-  - [ ] Implement login/logout functionality
-  - [ ] Implement protected routes
-  - [ ] Add navigation menu with role-based access
-  - [ ] Implement user session management
-  - [ ] Add loading states and error handling
+- [ ] **3.4 Hub Pattern Components**
+  - [ ] Central resource overview sections
+  - [ ] Quick actions bars for primary operations
+  - [ ] Related resources grid with contextual cards
+  - [ ] Contextual navigation for related resources
+  - [ ] Breadcrumb navigation with business context
+  - [ ] Progressive disclosure for complex data
+  - [ ] Responsive grid layouts for different screen sizes
 
-- [ ] **3.5 Testing & Validation**
-  - [ ] Write unit tests for components
-  - [ ] Write integration tests for pages
-  - [ ] Test authentication flow
-  - [ ] Test API integration
-  - [ ] Test responsive design
-  - [ ] Test accessibility compliance
+- [ ] **3.5 Real Observability Features Implementation**
+  - [ ] Real-time metrics dashboard with CloudWatch GetMetricData integration
+  - [ ] Interactive charts and visualizations using Cloudscape components
+  - [ ] Alert creation and management with AWS CloudWatch Alarms API
+  - [ ] Security event visualization from real backend observability API
+  - [ ] Log search and filtering with CloudWatch Logs StartQuery/GetQueryResults
+  - [ ] Distributed tracing visualization with X-Ray GetTraceSummaries/BatchGetTraces
+  - [ ] Cost monitoring dashboard with AWS Cost Explorer integration
+  - [ ] System health monitoring with real AWS service status
+  - [ ] Real-time WebSocket connections for live metric updates
+  - [ ] Functional notification system for real alerts
+
+- [ ] **3.6 Stubbed Non-Observability Features**
+  - [ ] Mock data generators for project and template entities
+  - [ ] Stubbed project management features with mock projects
+  - [ ] Stubbed template management with mock templates
+  - [ ] Mock AI integration features with placeholder responses
+  - [ ] Simulated real-time updates for non-observability mock data
+
+- [ ] **3.7 API Integration Layer**
+  - [ ] Real RTK Query API slices for observability endpoints
+  - [ ] Mock RTK Query API slices for stubbed domains (projects, templates)
+  - [ ] Custom RTK Query baseQuery for Amplify Data operations
+  - [ ] Error handling for both real and mock API responses
+  - [ ] Loading states and optimistic updates
+  - [ ] Real rate limiting and retry logic for observability APIs
+  - [ ] Request/response transformation for real observability data
+  - [ ] Authentication token management with Amplify
+
+- [ ] **3.8 Real-time and Infrastructure Features**
+  - [ ] Real WebSocket connections for live observability metrics
+  - [ ] Amplify Data subscription patterns for future domain implementation
+  - [ ] Live notification system for real observability alerts
+  - [ ] Real-time status indicators for observability data
+  - [ ] Auto-refresh mechanisms for real-time observability data
+  - [ ] Connection state management for real-time features
+  - [ ] Mock real-time patterns for stubbed domains
+
+- [ ] **3.9 Testing & Validation**
+  - [ ] Unit tests for Next.js components
+  - [ ] Integration tests for Amplify Data patterns
+  - [ ] E2E tests for authentication flow
+  - [ ] Real API integration testing for observability endpoints
+  - [ ] Mock API integration testing for stubbed domains
+  - [ ] Real-time observability feature testing
+  - [ ] Simulated real-time testing for stubbed domains
+  - [ ] Hub pattern navigation testing
+  - [ ] Responsive design validation
+  - [ ] Accessibility compliance testing
 
 - [ ] **Phase 3 Completion**
+  - [ ] Deploy to AWS Amplify Hosting
+  - [ ] Validate all real observability features working with live data
+  - [ ] Confirm mock data and stubbed non-observability features functioning
+  - [ ] Validate real-time observability updates functioning
+  - [ ] Test observability dashboard with real CloudWatch/X-Ray data
+  - [ ] Validate authentication and navigation flow
   - [ ] Write phase 3 implementation report
   - [ ] Commit phase 3 changes
   - [ ] Mark phase 3 as complete
@@ -406,26 +472,29 @@ implementation/
 ## 🔧 Technology Stack
 
 ### **Frontend**
-- React 18 + TypeScript
-- Redux Toolkit + RTK Query
-- Cloudscape Design System
-- AWS Amplify Gen2 for GraphQL queries
-- Vite for build tooling
+- Next.js 14 + React 18 + TypeScript
+- Redux Toolkit + Custom RTK Query with Amplify Data
+- Cloudscape Design System with Hub Pattern
+- @aws-amplify/ui-react for authentication
+- AWS Amplify Gen2 Data client for real-time subscriptions
+- AWS Amplify Hosting for deployment
 
 ### **Backend**
-- Python 3.12 + FastAPI
-- AWS Lambda + API Gateway
-- DynamoDB for event store and read models
+- Python 3.12 + AWS Lambda
+- AWS API Gateway for observability endpoints
+- AWS Amplify Data + AppSync for CQRS read models
+- DynamoDB for event store
 - EventBridge for event publishing
-- Cognito for authentication
-- CloudWatch for monitoring
+- Cognito for authentication with role-based access
+- CloudWatch + X-Ray for monitoring and tracing
 
 ### **Infrastructure**
 - AWS SAM for IaC
 - GitHub Actions for CI/CD
 - CloudFormation for deployment
-- X-Ray for tracing
+- X-Ray for distributed tracing
 - Secrets Manager for configuration
+- AWS Amplify for frontend hosting
 
 ## 📝 Implementation Protocol
 

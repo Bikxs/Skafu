@@ -238,7 +238,6 @@ public
 # AWS
 .aws/
 .aws-sam/
-samconfig.toml
 .chalice/
 .cdk.out/
 

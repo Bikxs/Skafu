@@ -1,0 +1,70 @@
+version = 0.1
+
+[default]
+[default.global.parameters]
+stack_name = "skafu"
+profile = "bikxs.net"
+
+[default.build.parameters]
+cached = true
+parallel = true
+
+[default.validate.parameters]
+lint = true
+
+[default.deploy.parameters]
+capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
+confirm_changeset = false
+resolve_s3 = true
+fail_on_empty_changeset = false
+image_repositories = []
+
+[default.package.parameters]
+resolve_s3 = true
+
+[default.sync.parameters]
+watch = true
+
+[default.local_start_api.parameters]
+warm_containers = "EAGER"
+
+[default.local_start_lambda.parameters]
+warm_containers = "EAGER"
+
+[development]
+[development.deploy.parameters]
+stack_name = "skafu-dev"
+s3_prefix = "skafu-dev"
+region = "us-east-1"
+capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
+parameter_overrides = [
+  "Environment=development",
+  "CorsOrigins=http://localhost:3000",
+  "LogLevel=DEBUG"
+]
+
+[staging]
+[staging.deploy.parameters]
+stack_name = "skafu-staging"
+s3_prefix = "skafu-staging"
+region = "us-east-1"
+capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
+parameter_overrides = [
+  "Environment=staging",
+  "CorsOrigins=https://staging.skafu.com",
+  "LogLevel=INFO"
+]
+
+[production]
+[production.deploy.parameters]
+stack_name = "skafu-prod"
+s3_prefix = "skafu-prod"
+region = "us-east-1"
+capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
+parameter_overrides = [
+  "Environment=production",
+  "CorsOrigins=https://skafu.com",
+  "LogLevel=INFO"
+]
+confirm_changeset = false
+fail_on_empty_changeset = false

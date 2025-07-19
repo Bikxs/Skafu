@@ -634,4 +634,5 @@ export const ErrorBoundary: React.FC = ({ children }) => {
 * [AWS Cloudscape Design System](https://cloudscape.design/)
 * [Cloudscape Components](https://cloudscape.design/components/)
 * [Accessibility Guidelines](https://cloudscape.design/foundation/accessibility/)
-* Related ADRs: ADR-0006 (Frontend Architecture), ADR-0004 (Amplify Gen2)
+* [Details Page as Hub Pattern](https://cloudscape.design/patterns/resource-management/details/details-page-as-hub/)
+* Related ADRs: ADR-0006 (Frontend Architecture with Next.js), ADR-0004 (Amplify Gen2), ADR-0008 (Hub Pattern), ADR-0009 (Next.js Integration)

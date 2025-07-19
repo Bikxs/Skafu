@@ -2,573 +2,192 @@
 
 ## Overview
 
-This document defines the page-level specifications for the Skafu platform, including user flows, page layouts, routing structure, and user experience patterns. Each page is designed to provide an intuitive and efficient user experience while maintaining consistency across the platform.
+This document defines the page-level specifications for the Skafu platform using Next.js app directory routing, including user flows, page layouts, hub pattern implementation, and user experience patterns. Each page is designed to provide an intuitive and efficient user experience while maintaining consistency across the platform.
 
-## Application Structure
+## Next.js App Directory Structure
 
-### Route Configuration
+### File-based Routing Configuration
 
-```typescript
-// src/routes/index.tsx
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
-import { AuthGuard } from '../components/auth/AuthGuard';
-import { Layout } from '../components/ui/Layout';
-
-// Page components
-import { Dashboard } from '../pages/Dashboard';
-import { Projects } from '../pages/Projects';
-import { ProjectDetail } from '../pages/ProjectDetail';
-import { ProjectCreate } from '../pages/ProjectCreate';
-import { Templates } from '../pages/Templates';
-import { TemplateDetail } from '../pages/TemplateDetail';
-import { AIAssistant } from '../pages/AIAssistant';
-import { GitHubIntegration } from '../pages/GitHubIntegration';
-import { Monitoring } from '../pages/Monitoring';
-import { Settings } from '../pages/Settings';
-import { Profile } from '../pages/Profile';
-import { Login } from '../pages/Login';
-import { Register } from '../pages/Register';
-import { ForgotPassword } from '../pages/ForgotPassword';
-import { NotFound } from '../pages/NotFound';
-
-export const router = createBrowserRouter([
-  {
-    path: '/login',
-    element: <Login />,
-  },
-  {
-    path: '/register',
-    element: <Register />,
-  },
-  {
-    path: '/forgot-password',
-    element: <ForgotPassword />,
-  },
-  {
-    path: '/',
-    element: (
-      <AuthGuard>
-        <Layout />
-      </AuthGuard>
-    ),
-    children: [
-      {
-        index: true,
-        element: <Dashboard />,
-      },
-      {
-        path: 'projects',
-        children: [
-          {
-            index: true,
-            element: <Projects />,
-          },
-          {
-            path: 'create',
-            element: <ProjectCreate />,
-          },
-          {
-            path: ':projectId',
-            element: <ProjectDetail />,
-          },
-        ],
-      },
-      {
-        path: 'templates',
-        children: [
-          {
-            index: true,
-            element: <Templates />,
-          },
-          {
-            path: 'my',
-            element: <Templates filter="my" />,
-          },
-          {
-            path: ':templateId',
-            element: <TemplateDetail />,
-          },
-        ],
-      },
-      {
-        path: 'ai',
-        element: <AIAssistant />,
-      },
-      {
-        path: 'github',
-        element: <GitHubIntegration />,
-      },
-      {
-        path: 'monitoring',
-        element: <Monitoring />,
-      },
-      {
-        path: 'settings',
-        element: <Settings />,
-      },
-      {
-        path: 'profile',
-        element: <Profile />,
-      },
-    ],
-  },
-  {
-    path: '*',
-    element: <NotFound />,
-  },
-]);
-
-export const AppRouter: React.FC = () => {
-  return <RouterProvider router={router} />;
-};
+```
+app/
+├── layout.tsx                    # Root layout with Amplify Authenticator
+├── page.tsx                      # Dashboard homepage (/)
+├── not-found.tsx                 # 404 page
+├── loading.tsx                   # Global loading UI
+├── error.tsx                     # Global error boundary
+├── projects/
+│   ├── page.tsx                 # Projects list (/projects)
+│   ├── loading.tsx              # Projects loading UI
+│   ├── create/
+│   │   └── page.tsx            # Create project (/projects/create)
+│   └── [projectId]/
+│       ├── page.tsx            # Project detail hub (/projects/[id])
+│       ├── loading.tsx         # Project loading UI
+│       ├── edit/
+│       │   └── page.tsx        # Edit project (/projects/[id]/edit)
+│       └── deployments/
+│           └── page.tsx        # Project deployments (/projects/[id]/deployments)
+├── templates/
+│   ├── page.tsx                # Templates list (/templates)
+│   ├── my/
+│   │   └── page.tsx           # My templates (/templates/my)
+│   └── [templateId]/
+│       └── page.tsx           # Template detail hub (/templates/[id])
+├── observability/
+│   ├── page.tsx               # Observability hub (/observability)
+│   ├── metrics/
+│   │   └── page.tsx          # Metrics dashboard (/observability/metrics)
+│   ├── logs/
+│   │   └── page.tsx          # Logs viewer (/observability/logs)
+│   ├── traces/
+│   │   └── page.tsx          # Distributed tracing (/observability/traces)
+│   └── alerts/
+│       └── page.tsx          # Alert management (/observability/alerts)
+├── settings/
+│   └── page.tsx              # Settings (/settings)
+└── profile/
+    └── page.tsx              # User profile (/profile)
 ```
 
-## Authentication Pages
-
-### Login Page
+### Root Layout with Authentication
 
 ```typescript
-// src/pages/Login/Login.tsx
-import React from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { 
-  Container, 
-  Header, 
-  SpaceBetween, 
-  Button, 
-  Alert,
-  Link,
-  Box,
-  Grid,
-  ColumnLayout
-} from '@cloudscape-design/components';
-import { Input } from '../../components/ui/Input';
-import { Card } from '../../components/ui/Card';
-import { useAuth } from '../../hooks/useAuth';
-import { styled } from '@emotion/styled';
+// app/layout.tsx
+'use client';
 
-const LoginContainer = styled.div`
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: var(--space-scaled-l);
-`;
+import { Amplify } from 'aws-amplify';
+import { Authenticator } from '@aws-amplify/ui-react';
+import '@aws-amplify/ui-react/styles.css';
+import '@cloudscape-design/global-styles/index.css';
+import { applyMode, Mode } from '@cloudscape-design/global-styles';
+import { Provider } from 'react-redux';
+import { store } from './lib/store';
+import { AmplifyClientProvider } from './lib/amplify/client';
+import amplifyConfig from './lib/amplify/auth';
+import './globals.css';
 
-const LoginCard = styled(Card)`
-  width: 100%;
-  max-width: 400px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-`;
+Amplify.configure(amplifyConfig);
+applyMode(Mode.Light);
 
-const Logo = styled.div`
-  text-align: center;
-  margin-bottom: var(--space-scaled-xl);
-  
-  h1 {
-    font-size: var(--font-size-xxxl);
-    color: var(--color-text-primary);
-    margin: 0;
-  }
-  
-  p {
-    color: var(--color-text-secondary);
-    margin-top: var(--space-scaled-xs);
-  }
-`;
-
-interface LoginFormData {
-  email: string;
-  password: string;
-  rememberMe: boolean;
-}
-
-export const Login: React.FC = () => {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const { login, isLoading, error } = useAuth();
-  
-  const [formData, setFormData] = React.useState<LoginFormData>({
-    email: '',
-    password: '',
-    rememberMe: false,
-  });
-  
-  const [formErrors, setFormErrors] = React.useState<Partial<LoginFormData>>({});
-  
-  const redirectTo = searchParams.get('redirect') || '/';
-  
-  const validateForm = (): boolean => {
-    const errors: Partial<LoginFormData> = {};
-    
-    if (!formData.email) {
-      errors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      errors.email = 'Please enter a valid email address';
-    }
-    
-    if (!formData.password) {
-      errors.password = 'Password is required';
-    } else if (formData.password.length < 8) {
-      errors.password = 'Password must be at least 8 characters';
-    }
-    
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-  
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validateForm()) return;
-    
-    try {
-      await login(formData.email, formData.password, formData.rememberMe);
-      navigate(redirectTo);
-    } catch (error) {
-      // Error handled by useAuth hook
-    }
-  };
-  
-  const handleInputChange = (field: keyof LoginFormData) => (value: string | boolean) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    // Clear error when user starts typing
-    if (formErrors[field]) {
-      setFormErrors(prev => ({ ...prev, [field]: undefined }));
-    }
-  };
-  
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <LoginContainer>
-      <LoginCard>
-        <form onSubmit={handleSubmit}>
-          <SpaceBetween direction="vertical" size="l">
-            <Logo>
-              <h1>Skafu</h1>
-              <p>Software Development Platform</p>
-            </Logo>
-            
-            {error && (
-              <Alert type="error" dismissible>
-                {error}
-              </Alert>
-            )}
-            
-            <Input
-              label="Email"
-              type="email"
-              value={formData.email}
-              onChange={handleInputChange('email')}
-              error={formErrors.email}
-              placeholder="Enter your email"
-              required
-            />
-            
-            <Input
-              label="Password"
-              type="password"
-              value={formData.password}
-              onChange={handleInputChange('password')}
-              error={formErrors.password}
-              placeholder="Enter your password"
-              required
-            />
-            
-            <Box>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={formData.rememberMe}
-                  onChange={(e) => handleInputChange('rememberMe')(e.target.checked)}
-                />
-                <span style={{ marginLeft: '8px' }}>Remember me</span>
-              </label>
-            </Box>
-            
-            <Button
-              variant="primary"
-              type="submit"
-              fullWidth
-              loading={isLoading}
-            >
-              Sign In
-            </Button>
-            
-            <ColumnLayout columns={2}>
-              <Link href="/forgot-password">Forgot password?</Link>
-              <Link href="/register" style={{ textAlign: 'right' }}>
-                Create account
-              </Link>
-            </ColumnLayout>
-            
-            <Box textAlign="center">
-              <p>Or sign in with:</p>
-              <SpaceBetween direction="horizontal" size="s">
-                <Button
-                  variant="secondary"
-                  onClick={() => window.location.href = '/api/auth/github'}
-                >
-                  GitHub
-                </Button>
-                <Button
-                  variant="secondary"
-                  onClick={() => window.location.href = '/api/auth/google'}
-                >
-                  Google
-                </Button>
-              </SpaceBetween>
-            </Box>
-          </SpaceBetween>
-        </form>
-      </LoginCard>
-    </LoginContainer>
+    <html lang="en">
+      <body>
+        <Authenticator.Provider>
+          <Authenticator 
+            hideSignUp={false}
+            components={{
+              Header: () => (
+                <div style={{ textAlign: 'center', padding: '2rem' }}>
+                  <h1>Skafu</h1>
+                  <p>Software Development Platform</p>
+                </div>
+              ),
+            }}
+          >
+            <Provider store={store}>
+              <AmplifyClientProvider>
+                <main>{children}</main>
+              </AmplifyClientProvider>
+            </Provider>
+          </Authenticator>
+        </Authenticator.Provider>
+      </body>
+    </html>
   );
-};
+}
 ```
 
-### Register Page
+## Authentication with @aws-amplify/ui-react
+
+### Automatic Authentication Flow
+
+Authentication is now handled entirely by the Amplify Authenticator component in the root layout. No custom authentication pages are needed.
 
 ```typescript
-// src/pages/Register/Register.tsx
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { 
-  SpaceBetween, 
-  Button, 
-  Alert,
-  Link,
-  Box,
-  Checkbox
-} from '@cloudscape-design/components';
-import { Input } from '../../components/ui/Input';
-import { Card } from '../../components/ui/Card';
-import { useAuth } from '../../hooks/useAuth';
-import { styled } from '@emotion/styled';
+// Authentication is handled automatically by Authenticator component
+// Custom theming can be applied if needed:
 
-const RegisterContainer = styled.div`
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: var(--space-scaled-l);
-`;
-
-const RegisterCard = styled(Card)`
-  width: 100%;
-  max-width: 450px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-`;
-
-interface RegisterFormData {
-  firstName: string;
-  lastName: string;
-  email: string;
-  password: string;
-  confirmPassword: string;
-  acceptTerms: boolean;
-  acceptMarketing: boolean;
-}
-
-export const Register: React.FC = () => {
-  const navigate = useNavigate();
-  const { register, isLoading, error } = useAuth();
-  
-  const [formData, setFormData] = React.useState<RegisterFormData>({
-    firstName: '',
-    lastName: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    acceptTerms: false,
-    acceptMarketing: false,
-  });
-  
-  const [formErrors, setFormErrors] = React.useState<Partial<RegisterFormData>>({});
-  
-  const validateForm = (): boolean => {
-    const errors: Partial<RegisterFormData> = {};
-    
-    if (!formData.firstName.trim()) {
-      errors.firstName = 'First name is required';
-    }
-    
-    if (!formData.lastName.trim()) {
-      errors.lastName = 'Last name is required';
-    }
-    
-    if (!formData.email) {
-      errors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      errors.email = 'Please enter a valid email address';
-    }
-    
-    if (!formData.password) {
-      errors.password = 'Password is required';
-    } else if (formData.password.length < 8) {
-      errors.password = 'Password must be at least 8 characters';
-    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
-      errors.password = 'Password must contain at least one uppercase letter, one lowercase letter, and one number';
-    }
-    
-    if (!formData.confirmPassword) {
-      errors.confirmPassword = 'Please confirm your password';
-    } else if (formData.password !== formData.confirmPassword) {
-      errors.confirmPassword = 'Passwords do not match';
-    }
-    
-    if (!formData.acceptTerms) {
-      errors.acceptTerms = 'You must accept the terms and conditions';
-    }
-    
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-  
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validateForm()) return;
-    
-    try {
-      await register({
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        password: formData.password,
-        acceptMarketing: formData.acceptMarketing,
-      });
-      navigate('/login?message=registration-success');
-    } catch (error) {
-      // Error handled by useAuth hook
-    }
-  };
-  
-  const handleInputChange = (field: keyof RegisterFormData) => (value: string | boolean) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    // Clear error when user starts typing
-    if (formErrors[field]) {
-      setFormErrors(prev => ({ ...prev, [field]: undefined }));
-    }
-  };
-  
-  return (
-    <RegisterContainer>
-      <RegisterCard>
-        <form onSubmit={handleSubmit}>
-          <SpaceBetween direction="vertical" size="l">
-            <Box textAlign="center">
-              <h1>Create Account</h1>
-              <p>Join Skafu and start building amazing projects</p>
-            </Box>
-            
-            {error && (
-              <Alert type="error" dismissible>
-                {error}
-              </Alert>
-            )}
-            
-            <SpaceBetween direction="horizontal" size="s">
-              <Input
-                label="First Name"
-                value={formData.firstName}
-                onChange={handleInputChange('firstName')}
-                error={formErrors.firstName}
-                placeholder="Enter your first name"
-                required
-              />
-              <Input
-                label="Last Name"
-                value={formData.lastName}
-                onChange={handleInputChange('lastName')}
-                error={formErrors.lastName}
-                placeholder="Enter your last name"
-                required
-              />
-            </SpaceBetween>
-            
-            <Input
-              label="Email"
-              type="email"
-              value={formData.email}
-              onChange={handleInputChange('email')}
-              error={formErrors.email}
-              placeholder="Enter your email"
-              required
-            />
-            
-            <Input
-              label="Password"
-              type="password"
-              value={formData.password}
-              onChange={handleInputChange('password')}
-              error={formErrors.password}
-              placeholder="Create a strong password"
-              helperText="Must be at least 8 characters with uppercase, lowercase, and number"
-              required
-            />
-            
-            <Input
-              label="Confirm Password"
-              type="password"
-              value={formData.confirmPassword}
-              onChange={handleInputChange('confirmPassword')}
-              error={formErrors.confirmPassword}
-              placeholder="Confirm your password"
-              required
-            />
-            
-            <SpaceBetween direction="vertical" size="s">
-              <Checkbox
-                checked={formData.acceptTerms}
-                onChange={({ detail }) => handleInputChange('acceptTerms')(detail.checked)}
-              >
-                I accept the <Link href="/terms">Terms of Service</Link> and{' '}
-                <Link href="/privacy">Privacy Policy</Link>
-              </Checkbox>
-              
-              <Checkbox
-                checked={formData.acceptMarketing}
-                onChange={({ detail }) => handleInputChange('acceptMarketing')(detail.checked)}
-              >
-                I would like to receive product updates and marketing communications
-              </Checkbox>
-            </SpaceBetween>
-            
-            {formErrors.acceptTerms && (
-              <Alert type="error">{formErrors.acceptTerms}</Alert>
-            )}
-            
-            <Button
-              variant="primary"
-              type="submit"
-              fullWidth
-              loading={isLoading}
-            >
-              Create Account
-            </Button>
-            
-            <Box textAlign="center">
-              <p>
-                Already have an account?{' '}
-                <Link href="/login">Sign in</Link>
-              </p>
-            </Box>
-          </SpaceBetween>
-        </form>
-      </RegisterCard>
-    </RegisterContainer>
-  );
+const theme = {
+  name: 'skafu-theme',
+  tokens: {
+    colors: {
+      brand: {
+        primary: {
+          10: '#003d82',
+          80: '#0073bb',
+          90: '#99d8ff',
+          100: '#ffffff',
+        },
+      },
+    },
+    fonts: {
+      default: {
+        variable: { value: 'Inter, sans-serif' },
+        static: { value: 'Inter, sans-serif' },
+      },
+    },
+  },
 };
+
+// app/layout.tsx with custom theming
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en">
+      <body>
+        <Authenticator.Provider>
+          <ThemeProvider theme={theme}>
+            <Authenticator 
+              hideSignUp={false}
+              socialProviders={['google', 'github']}
+              components={{
+                Header: () => (
+                  <div style={{ textAlign: 'center', padding: '2rem' }}>
+                    <h1>Skafu</h1>
+                    <p>Software Development Platform</p>
+                  </div>
+                ),
+                Footer: () => (
+                  <div style={{ textAlign: 'center', padding: '1rem' }}>
+                    <p>© 2025 Skafu. All rights reserved.</p>
+                  </div>
+                ),
+              }}
+            >
+              <Provider store={store}>
+                <AmplifyClientProvider>
+                  <main>{children}</main>
+                </AmplifyClientProvider>
+              </Provider>
+            </Authenticator>
+          </ThemeProvider>
+        </Authenticator.Provider>
+      </body>
+    </html>
+  );
+}
 ```
+
+### Benefits of @aws-amplify/ui-react
+
+- **Zero Configuration**: Automatic form validation, error handling, and state management
+- **Built-in Features**: Sign-up, sign-in, forgot password, account verification
+- **Social Providers**: Google, GitHub, and other OAuth providers out of the box
+- **Responsive Design**: Mobile-first responsive components
+- **Accessibility**: WCAG 2.1 AA compliant by default
+- **Theming**: Customizable design tokens and component styling
+- **Security**: Automatic CSRF protection and secure token handling
 
 ## Main Application Pages
 
 ### Dashboard Page
 
 ```typescript
-// src/pages/Dashboard/Dashboard.tsx
+// app/page.tsx
 import React from 'react';
 import { 
   SpaceBetween,
@@ -740,7 +359,7 @@ export const Dashboard: React.FC = () => {
 ### Projects Page
 
 ```typescript
-// src/pages/Projects/Projects.tsx
+// app/projects/page.tsx
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -1005,12 +624,15 @@ export const Projects: React.FC<ProjectsProps> = ({ filter = 'all' }) => {
 };
 ```
 
-### Project Detail Page
+### Project Detail Hub Page
 
 ```typescript
-// src/pages/ProjectDetail/ProjectDetail.tsx
-import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+// app/projects/[projectId]/page.tsx
+'use client';
+
+import { useParams, useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import { useDispatch } from 'react-redux';
 import { 
   SpaceBetween,
   Header,
@@ -1019,34 +641,51 @@ import {
   Container,
   StatusIndicator,
   Badge,
-  Tabs,
   Alert,
   Box,
-  ColumnLayout
+  ColumnLayout,
+  Link,
+  BreadcrumbGroup
 } from '@cloudscape-design/components';
-import { ProjectOverview } from '../../components/domain/project/ProjectOverview';
-import { ProjectFiles } from '../../components/domain/project/ProjectFiles';
-import { ProjectSettings } from '../../components/domain/project/ProjectSettings';
-import { ProjectActivity } from '../../components/domain/project/ProjectActivity';
-import { ProjectDeployments } from '../../components/domain/project/ProjectDeployments';
-import { ProjectAnalytics } from '../../components/domain/project/ProjectAnalytics';
-import { useProject } from '../../hooks/useProject';
-import { useProjectActions } from '../../hooks/useProjectActions';
+import { useGetProjectQuery } from '../../lib/store/amplifyApi';
+import { ProjectHeroSection } from '../components/ProjectHeroSection';
+import { RelatedTemplatesCard } from '../components/RelatedTemplatesCard';
+import { TeamMembersCard } from '../components/TeamMembersCard';
+import { RecentDeploymentsCard } from '../components/RecentDeploymentsCard';
+import { ContextualNavigation } from '../components/ContextualNavigation';
 
-export const ProjectDetail: React.FC = () => {
-  const { projectId } = useParams<{ projectId: string }>();
-  const navigate = useNavigate();
-  const [activeTab, setActiveTab] = React.useState('overview');
+export default function ProjectDetailHub() {
+  const { projectId } = useParams();
+  const router = useRouter();
+  const dispatch = useDispatch();
   
-  const { project, loading, error, refetch } = useProject(projectId);
   const { 
-    deployProject, 
-    deleteProject, 
-    archiveProject,
-    loading: actionsLoading 
-  } = useProjectActions();
+    data: project, 
+    isLoading, 
+    error 
+  } = useGetProjectQuery(projectId);
   
-  if (loading) {
+  // Setup real-time subscriptions for this project
+  useEffect(() => {
+    dispatch({ 
+      type: 'subscriptions/setup', 
+      payload: { model: 'Project', operation: 'onUpdate' } 
+    });
+    dispatch({ 
+      type: 'subscriptions/setup', 
+      payload: { model: 'ProjectMember', operation: 'onCreate' } 
+    });
+    dispatch({ 
+      type: 'subscriptions/setup', 
+      payload: { model: 'Deployment', operation: 'onCreate' } 
+    });
+
+    return () => {
+      dispatch({ type: 'subscriptions/cleanupAll' });
+    };
+  }, [dispatch, projectId]);
+  
+  if (isLoading) {
     return <div>Loading project...</div>;
   }
   
@@ -1066,33 +705,17 @@ export const ProjectDetail: React.FC = () => {
     );
   }
   
-  const handleDeploy = async () => {
-    try {
-      await deployProject(project.id);
-      refetch();
-    } catch (error) {
-      console.error('Failed to deploy project:', error);
-    }
+  const handleDeploy = () => {
+    // Trigger deployment via observability API
+    router.push(`/projects/${projectId}/deployments`);
   };
   
-  const handleDelete = async () => {
-    if (window.confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
-      try {
-        await deleteProject(project.id);
-        navigate('/projects');
-      } catch (error) {
-        console.error('Failed to delete project:', error);
-      }
-    }
+  const handleClone = () => {
+    router.push(`/projects/create?template=${project.templateId}&clone=${projectId}`);
   };
   
-  const handleArchive = async () => {
-    try {
-      await archiveProject(project.id);
-      refetch();
-    } catch (error) {
-      console.error('Failed to archive project:', error);
-    }
+  const handleShare = () => {
+    // Open share modal
   };
   
   const getStatusColor = (status: string) => {
@@ -1105,112 +728,276 @@ export const ProjectDetail: React.FC = () => {
     }
   };
   
-  const tabs = [
-    {
-      id: 'overview',
-      label: 'Overview',
-      content: <ProjectOverview project={project} onRefetch={refetch} />
-    },
-    {
-      id: 'files',
-      label: 'Files',
-      content: <ProjectFiles project={project} onRefetch={refetch} />
-    },
-    {
-      id: 'deployments',
-      label: 'Deployments',
-      content: <ProjectDeployments project={project} onRefetch={refetch} />
-    },
-    {
-      id: 'analytics',
-      label: 'Analytics',
-      content: <ProjectAnalytics project={project} />
-    },
-    {
-      id: 'activity',
-      label: 'Activity',
-      content: <ProjectActivity project={project} />
-    },
-    {
-      id: 'settings',
-      label: 'Settings',
-      content: <ProjectSettings project={project} onRefetch={refetch} />
-    },
-  ];
-  
   return (
     <SpaceBetween direction="vertical" size="l">
-      <Header
-        variant="h1"
-        description={project.description}
-        actions={
-          <SpaceBetween direction="horizontal" size="xs">
-            <Button onClick={() => navigate(`/projects/${project.id}/edit`)}>
-              Edit Project
-            </Button>
-            <Button
-              variant="primary"
-              onClick={handleDeploy}
-              loading={actionsLoading}
-              disabled={project.status !== 'active'}
-            >
-              Deploy
-            </Button>
-            <Button onClick={handleArchive} disabled={project.status === 'archived'}>
-              {project.status === 'archived' ? 'Archived' : 'Archive'}
-            </Button>
-            <Button onClick={handleDelete} variant="link">
-              Delete
-            </Button>
-          </SpaceBetween>
+      {/* Breadcrumb Navigation */}
+      <BreadcrumbGroup
+        items={[
+          { text: 'Projects', href: '/projects' },
+          { text: project.template?.name || 'Template', href: `/templates/${project.templateId}` },
+          { text: project.name, href: `/projects/${projectId}` }
+        ]}
+      />
+      
+      {/* Hero Section - Central Resource Overview */}
+      <Container
+        header={
+          <Header
+            variant="h1"
+            description={project.description}
+            actions={
+              <StatusIndicator type={getStatusColor(project.status)}>
+                {project.status.toUpperCase()}
+              </StatusIndicator>
+            }
+          >
+            {project.name}
+          </Header>
         }
       >
-        {project.name}
-      </Header>
-      
-      {/* Project Status Bar */}
-      <Container>
         <ColumnLayout columns={4} borders="vertical">
           <div>
-            <Box variant="awsui-key-label">Status</Box>
-            <StatusIndicator type={getStatusColor(project.status)}>
-              {project.status}
-            </StatusIndicator>
+            <Box variant="awsui-key-label">Template Used</Box>
+            <Link href={`/templates/${project.templateId}`}>
+              {project.template?.name || 'Unknown Template'}
+            </Link>
           </div>
           <div>
-            <Box variant="awsui-key-label">Template</Box>
-            <Badge>{project.template}</Badge>
+            <Box variant="awsui-key-label">Team Members</Box>
+            <Link href={`/projects/${projectId}/team`}>
+              {project.members?.length || 0} members
+            </Link>
           </div>
           <div>
             <Box variant="awsui-key-label">Last Deployed</Box>
-            <div>{project.lastDeployedAt || 'Never'}</div>
+            <Link href={`/projects/${projectId}/deployments`}>
+              {project.lastDeployedAt || 'Never'}
+            </Link>
           </div>
           <div>
             <Box variant="awsui-key-label">Created</Box>
-            <div>{project.createdAt}</div>
+            <div>{new Date(project.createdAt).toLocaleDateString()}</div>
           </div>
         </ColumnLayout>
       </Container>
       
-      {/* Project Tabs */}
-      <Tabs
-        activeTabId={activeTab}
-        onChange={({ detail }) => setActiveTab(detail.activeTabId)}
-        tabs={tabs}
-        variant="default"
-      />
+      {/* Quick Actions Bar */}
+      <Container>
+        <SpaceBetween direction="horizontal" size="s">
+          <Button 
+            variant="primary" 
+            iconName="upload"
+            onClick={handleDeploy}
+            disabled={project.status !== 'active'}
+          >
+            Deploy
+          </Button>
+          <Button 
+            iconName="copy"
+            onClick={handleClone}
+          >
+            Clone Project
+          </Button>
+          <Button 
+            iconName="share"
+            onClick={handleShare}
+          >
+            Share
+          </Button>
+          <Button 
+            iconName="edit"
+            onClick={() => router.push(`/projects/${projectId}/edit`)}
+          >
+            Edit Settings
+          </Button>
+        </SpaceBetween>
+      </Container>
+      
+      {/* Related Resources Grid - Hub Pattern */}
+      <Grid gridDefinition={[
+        { colspan: { default: 12, s: 6, m: 4 } },
+        { colspan: { default: 12, s: 6, m: 4 } },
+        { colspan: { default: 12, s: 12, m: 4 } }
+      ]}>
+        <RelatedTemplatesCard projectId={projectId} />
+        <TeamMembersCard projectId={projectId} />
+        <RecentDeploymentsCard projectId={projectId} />
+      </Grid>
+      
+      {/* Contextual Navigation */}
+      <ContextualNavigation project={project} />
     </SpaceBetween>
+  );
+}
+```
+
+### Hub Pattern Components
+
+```typescript
+// app/projects/components/RelatedTemplatesCard.tsx
+'use client';
+
+import { Container, Header, Button, SpaceBetween, Box, Link } from '@cloudscape-design/components';
+import { useGetRelatedTemplatesQuery } from '../../lib/store/amplifyApi';
+import { useRouter } from 'next/navigation';
+
+interface RelatedTemplatesCardProps {
+  projectId: string;
+}
+
+export const RelatedTemplatesCard: React.FC<RelatedTemplatesCardProps> = ({ projectId }) => {
+  const router = useRouter();
+  const { data: relatedTemplates, isLoading } = useGetRelatedTemplatesQuery(projectId);
+  
+  return (
+    <Container
+      header={
+        <Header
+          variant="h2"
+          actions={
+            <Button 
+              variant="link"
+              onClick={() => router.push('/templates')}
+            >
+              View All Templates
+            </Button>
+          }
+        >
+          Related Templates
+        </Header>
+      }
+    >
+      <SpaceBetween direction="vertical" size="s">
+        {isLoading ? (
+          <Box>Loading templates...</Box>
+        ) : (
+          relatedTemplates?.map(template => (
+            <Box key={template.id}>
+              <Link 
+                href={`/templates/${template.id}`}
+                fontSize="body-s"
+              >
+                {template.name}
+              </Link>
+              <Box fontSize="body-xs" color="text-status-inactive">
+                Used by {template.projectCount} projects
+              </Box>
+            </Box>
+          ))
+        )}
+      </SpaceBetween>
+    </Container>
+  );
+};
+
+// app/projects/components/TeamMembersCard.tsx
+'use client';
+
+import { Container, Header, Button, SpaceBetween, Box, Link } from '@cloudscape-design/components';
+import { useGetProjectMembersQuery } from '../../lib/store/amplifyApi';
+
+interface TeamMembersCardProps {
+  projectId: string;
+}
+
+export const TeamMembersCard: React.FC<TeamMembersCardProps> = ({ projectId }) => {
+  const { data: teamMembers, isLoading } = useGetProjectMembersQuery(projectId);
+  
+  return (
+    <Container
+      header={
+        <Header
+          variant="h2"
+          actions={
+            <Button 
+              iconName="add-plus"
+              onClick={() => setShowInviteModal(true)}
+            >
+              Invite Member
+            </Button>
+          }
+        >
+          Team Members ({teamMembers?.length || 0})
+        </Header>
+      }
+    >
+      <SpaceBetween direction="vertical" size="s">
+        {isLoading ? (
+          <Box>Loading team members...</Box>
+        ) : (
+          teamMembers?.map(member => (
+            <Box key={member.id}>
+              <Link 
+                href={`/profile/${member.userId}`}
+                fontSize="body-s"
+              >
+                {member.user.name}
+              </Link>
+              <Box fontSize="body-xs" color="text-status-inactive">
+                {member.role} • Last active {member.user.lastActiveAt}
+              </Box>
+            </Box>
+          ))
+        )}
+      </SpaceBetween>
+    </Container>
+  );
+};
+
+// app/projects/components/ContextualNavigation.tsx
+'use client';
+
+import { Container, SpaceBetween, Button } from '@cloudscape-design/components';
+import { useRouter } from 'next/navigation';
+
+interface ContextualNavigationProps {
+  project: any;
+}
+
+export const ContextualNavigation: React.FC<ContextualNavigationProps> = ({ project }) => {
+  const router = useRouter();
+  
+  return (
+    <Container>
+      <SpaceBetween direction="horizontal" size="m">
+        <Button 
+          variant="link"
+          iconName="arrow-left"
+          onClick={() => router.push(`/templates/${project.templateId}`)}
+        >
+          View Template: {project.template?.name}
+        </Button>
+        <Button 
+          variant="link"
+          iconName="external"
+          onClick={() => router.push(`/projects?template=${project.templateId}`)}
+        >
+          Other projects using this template
+        </Button>
+        <Button 
+          variant="link"
+          iconName="user-profile"
+          onClick={() => router.push(`/profile/${project.ownerId}`)}
+        >
+          View project owner
+        </Button>
+      </SpaceBetween>
+    </Container>
   );
 };
 ```
 
-This comprehensive page specification provides the foundation for all major pages in the Skafu platform. Each page is designed with:
+This comprehensive Next.js page specification provides the foundation for all major pages in the Skafu platform. Each page is designed with:
 
-1. **Consistent Layout**: Using the established design system and components
-2. **User-Friendly Navigation**: Clear breadcrumbs and navigation patterns
-3. **Responsive Design**: Mobile-first approach with responsive grids
-4. **Accessibility**: Proper ARIA labels and keyboard navigation
-5. **Error Handling**: Graceful error states and loading indicators
-6. **Performance**: Optimized data fetching and caching strategies
+1. **Hub Pattern Navigation**: Central resource hubs with contextual navigation to related resources
+2. **Amplify Authentication**: Zero-configuration authentication with @aws-amplify/ui-react
+3. **File-based Routing**: Intuitive Next.js app directory structure
+4. **Real-time Updates**: Automatic subscription management for live data
+5. **Responsive Design**: Mobile-first approach with Cloudscape responsive grids
+6. **Accessibility**: WCAG 2.1 AA compliance through Cloudscape and Amplify components
+7. **Error Handling**: Automatic error boundaries and loading states
+8. **Performance**: Automatic code splitting and optimized data fetching
+9. **Type Safety**: End-to-end TypeScript with Amplify-generated types
+10. **SEO Ready**: Next.js optimizations for search engine visibility
 
-The pages work together to create a cohesive user experience while maintaining the flexibility to handle complex workflows and user interactions.
+The pages work together to create a cohesive user experience with seamless navigation between related resources, automatic authentication, and real-time collaborative features.

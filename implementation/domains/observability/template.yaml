@@ -43,10 +43,6 @@ Parameters:
     Type: String
     Description: ARN of the shared AWS Lambda Powertools Layer
 
-  PowertoolsLayerArn:
-    Type: String
-    Description: ARN of the shared AWS Lambda Powertools Layer
-
 Globals:
   Function:
     Runtime: python3.12
@@ -299,7 +295,7 @@ Resources:
       IdentitySource: method.request.header.Authorization
       RestApiId: !Ref ApiGatewayId
       ProviderARNs:
-        - !Ref UserPoolId
+        - !Sub 'arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${UserPoolId}'
 
 # Lambda Functions
   QueryMetricsFunction:
@@ -309,9 +305,12 @@ Resources:
       CodeUri: backend/functions/query_metrics/src/
       Handler: app.lambda_handler
       Policies:
-        - CloudWatchReadonlyAccess
-        - EventBridgePutEventsPolicy:
-            EventBusName: !Ref ErrorBusName
+        - arn:aws:iam::aws:policy/CloudWatchReadOnlyAccess
+        - Statement:
+            - Effect: Allow
+              Action:
+                - events:PutEvents
+              Resource: !Sub 'arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/${ErrorBusName}'
       
   
   QueryTracesFunction:
@@ -321,9 +320,12 @@ Resources:
       CodeUri: backend/functions/query_traces/src/
       Handler: app.lambda_handler
       Policies:
-        - XRayReadonlyAccess
-        - EventBridgePutEventsPolicy:
-            EventBusName: !Ref ErrorBusName
+        - arn:aws:iam::aws:policy/AWSXRayReadOnlyAccess
+        - Statement:
+            - Effect: Allow
+              Action:
+                - events:PutEvents
+              Resource: !Sub 'arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/${ErrorBusName}'
       
   
   QueryLogsFunction:
@@ -333,9 +335,12 @@ Resources:
       CodeUri: backend/functions/query_logs/src/
       Handler: app.lambda_handler
       Policies:
-        - CloudWatchLogsReadonlyAccess
-        - EventBridgePutEventsPolicy:
-            EventBusName: !Ref ErrorBusName
+        - arn:aws:iam::aws:policy/CloudWatchLogsReadOnlyAccess
+        - Statement:
+            - Effect: Allow
+              Action:
+                - events:PutEvents
+              Resource: !Sub 'arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/${ErrorBusName}'
       
   
   QueryUsersFunction:
@@ -345,9 +350,12 @@ Resources:
       CodeUri: backend/functions/query_users/src/
       Handler: app.lambda_handler
       Policies:
-        - CognitoReadonlyAccess
-        - EventBridgePutEventsPolicy:
-            EventBusName: !Ref ErrorBusName
+        - arn:aws:iam::aws:policy/AmazonCognitoReadOnly
+        - Statement:
+            - Effect: Allow
+              Action:
+                - events:PutEvents
+              Resource: !Sub 'arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/${ErrorBusName}'
       
   
   QueryFinanceCostFunction:
@@ -362,8 +370,11 @@ Resources:
               Action:
                 - ce:GetCostAndUsage
               Resource: '*'
-        - EventBridgePutEventsPolicy:
-            EventBusName: !Ref ErrorBusName
+        - Statement:
+            - Effect: Allow
+              Action:
+                - events:PutEvents
+              Resource: !Sub 'arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/${ErrorBusName}'
       
   
   QueryFinanceForecastFunction:
@@ -378,8 +389,11 @@ Resources:
               Action:
                 - ce:GetCostForecast
               Resource: '*'
-        - EventBridgePutEventsPolicy:
-            EventBusName: !Ref ErrorBusName
+        - Statement:
+            - Effect: Allow
+              Action:
+                - events:PutEvents
+              Resource: !Sub 'arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/${ErrorBusName}'
       
   
   QueryAlarmsFunction:
@@ -389,7 +403,10 @@ Resources:
       CodeUri: backend/functions/query_alarms/src/
       Handler: app.lambda_handler
       Policies:
-        - CloudWatchReadonlyAccess
-        - EventBridgePutEventsPolicy:
-            EventBusName: !Ref ErrorBusName
+        - arn:aws:iam::aws:policy/CloudWatchReadOnlyAccess
+        - Statement:
+            - Effect: Allow
+              Action:
+                - events:PutEvents
+              Resource: !Sub 'arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/${ErrorBusName}'
       

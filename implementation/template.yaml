@@ -69,6 +69,7 @@ Resources:
         UserPoolClientId: !GetAtt SharedResourcesStack.Outputs.UserPoolClientId
         ApiGatewayId: !GetAtt SharedResourcesStack.Outputs.ApiGatewayId
         ApiGatewayRootResourceId: !GetAtt SharedResourcesStack.Outputs.ApiGatewayRootResourceId
+        PowertoolsLayerArn: !GetAtt SharedResourcesStack.Outputs.PowertoolsLayerArn
 
 Outputs:
   ApiEndpoint:

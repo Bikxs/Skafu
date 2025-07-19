@@ -59,18 +59,22 @@ Chosen option: "{Option Title}", because {justification}
   - Configuration-driven orchestration approach
 
 ### 🎨 Frontend Architecture
-- [ADR-0006: Frontend Architecture with Redux Toolkit](./0006-frontend-architecture-redux-amplify.md)
-  - React, Redux Toolkit, RTK Query, and Amplify integration
+- [ADR-0006: Frontend Architecture with Redux Toolkit and Next.js](./0006-frontend-architecture-redux-amplify.md)
+  - Next.js, Redux Toolkit, RTK Query, and Amplify Data integration
 - [ADR-0007: Cloudscape Design System](./0007-cloudscape-design-system.md)
   - AWS UI component library for consistent design
+- [ADR-0008: Cloudscape Details Page as Hub Pattern](./0008-cloudscape-hub-pattern.md)
+  - Hub pattern for resource detail navigation
+- [ADR-0009: Next.js with Amplify Gen2 Integration](./0009-nextjs-amplify-integration.md)
+  - Next.js app directory with client-side rendering and Amplify Data
 
 ### 🚀 Development & Operations
-- [ADR-0008: GitHub Actions CI/CD](./0008-github-actions-cicd.md)
-  - Continuous integration and deployment pipeline
-- [ADR-0009: Embedded Claude SDK Integration](./0009-embedded-claude-sdk.md)
-  - AI-powered scaffolding capabilities
 - [ADR-0010: No Template Versioning](./0010-no-template-versioning.md)
   - Template management strategy
+- [ADR-0011: Embedded Claude SDK Integration](./0011-embedded-claude-sdk.md)
+  - AI-powered scaffolding capabilities
+- [ADR-0012: GitHub Actions CI/CD](./0012-github-actions-cicd.md)
+  - Continuous integration and deployment pipeline
 
 ## Superseded ADRs
 
@@ -120,10 +124,10 @@ The following ADRs have been superseded by consolidated ADRs above:
 
 | Area | Primary ADR | Related ADRs |
 |------|-------------|--------------|
-| Infrastructure | ADR-0001 | ADR-0005, ADR-0008 |
-| Data Management | ADR-0002 | ADR-0001 |
+| Infrastructure | ADR-0001 | ADR-0005, ADR-0012 |
+| Data Management | ADR-0002 | ADR-0001, ADR-0009 |
 | API Development | ADR-0001, ADR-0004 | ADR-0002, ADR-0005 |
-| Frontend | ADR-0006 | ADR-0002, ADR-0007 |
+| Frontend | ADR-0006, ADR-0009 | ADR-0002, ADR-0007, ADR-0008 |
 | Security | ADR-0004 | All ADRs |
 | Monitoring | ADR-0003 | ADR-0001, ADR-0004 |
-| AI Integration | ADR-0009 | ADR-0001 |
+| AI Integration | ADR-0011 | ADR-0001 |
