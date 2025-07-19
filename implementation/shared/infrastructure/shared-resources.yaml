@@ -177,6 +177,182 @@ Resources:
       UserPoolId: !Ref UserPool
       Precedence: 3
   
+  # Cognito Identity Pool (for AWS SDK access and Amplify Gen2 integration)
+  IdentityPool:
+    Type: AWS::Cognito::IdentityPool
+    Properties:
+      IdentityPoolName: !Sub 'skafu-identity-${Environment}'
+      AllowUnauthenticatedIdentities: false
+      CognitoIdentityProviders:
+        - ClientId: !Ref UserPoolClient
+          ProviderName: !GetAtt UserPool.ProviderName
+          ServerSideTokenCheck: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: Skafu
+        - Key: ManagedBy
+          Value: SAM
+  
+  # IAM Role for authenticated users (Amplify Gen2 + AWS SDK access)
+  AuthenticatedRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'skafu-auth-role-${Environment}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: cognito-identity.amazonaws.com
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                'cognito-identity.amazonaws.com:aud': !Ref IdentityPool
+              'ForAnyValue:StringLike':
+                'cognito-identity.amazonaws.com:amr': authenticated
+      Policies:
+        - PolicyName: AuthenticatedPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              # AppSync permissions (for Amplify Data with user-based auth)
+              - Effect: Allow
+                Action:
+                  - appsync:GraphQL
+                Resource: '*'
+                Condition:
+                  StringEquals:
+                    'aws:RequestedRegion': !Ref 'AWS::Region'
+              
+              # CloudWatch permissions for observability features
+              - Effect: Allow
+                Action:
+                  - cloudwatch:GetMetricStatistics
+                  - cloudwatch:ListMetrics
+                  - logs:DescribeLogGroups
+                  - logs:DescribeLogStreams
+                  - logs:GetLogEvents
+                  - xray:GetTraceSummaries
+                  - xray:BatchGetTraces
+                Resource: '*'
+              
+              # S3 permissions for file uploads to assets bucket
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
+                Resource: !Sub '${AssetsBucket}/*'
+              
+              # DynamoDB permissions for user-specific data
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:Query
+                Resource: !GetAtt EventStore.Arn
+                Condition:
+                  'ForAllValues:StringEquals':
+                    'dynamodb:LeadingKeys': ['${cognito-identity.amazonaws.com:sub}']
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: Skafu
+        - Key: ManagedBy
+          Value: SAM
+  
+  # IAM Role for unauthenticated users (minimal permissions for public access)
+  UnauthenticatedRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'skafu-unauth-role-${Environment}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: cognito-identity.amazonaws.com
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                'cognito-identity.amazonaws.com:aud': !Ref IdentityPool
+              'ForAnyValue:StringLike':
+                'cognito-identity.amazonaws.com:amr': unauthenticated
+      Policies:
+        - PolicyName: UnauthenticatedPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              # Minimal permissions for anonymous users
+              - Effect: Allow
+                Action:
+                  - cognito-sync:*
+                Resource: '*'
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: Skafu
+        - Key: ManagedBy
+          Value: SAM
+  
+  # Identity Pool Role Attachment
+  IdentityPoolRoleAttachment:
+    Type: AWS::Cognito::IdentityPoolRoleAttachment
+    Properties:
+      IdentityPoolId: !Ref IdentityPool
+      Roles:
+        authenticated: !GetAtt AuthenticatedRole.Arn
+        unauthenticated: !GetAtt UnauthenticatedRole.Arn
+  
+  # Dedicated User Pool Client for Frontend (Amplify Gen2)
+  FrontendUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref UserPool
+      ClientName: !Sub 'skafu-frontend-${Environment}'
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+        - ALLOW_USER_PASSWORD_AUTH
+      SupportedIdentityProviders:
+        - COGNITO
+      CallbackURLs:
+        - http://localhost:3000
+        - !If [IsProduction, 'https://app.skafu.com', 'https://dev.skafu.com']
+      LogoutURLs:
+        - http://localhost:3000
+        - !If [IsProduction, 'https://app.skafu.com', 'https://dev.skafu.com']
+      AllowedOAuthFlows:
+        - code
+      AllowedOAuthScopes:
+        - email
+        - openid
+        - profile
+      TokenValidityUnits:
+        AccessToken: hours
+        IdToken: hours
+        RefreshToken: days
+      AccessTokenValidity: 1
+      IdTokenValidity: 1
+      RefreshTokenValidity: 30
+      ReadAttributes:
+        - email
+        - name
+        - family_name
+        - given_name
+      WriteAttributes:
+        - email
+        - name
+        - family_name
+        - given_name
+  
   # DynamoDB Event Store
   EventStore:
     Type: AWS::DynamoDB::Table
@@ -333,6 +509,37 @@ Outputs:
     Value: !Ref UserPoolClient
     Export:
       Name: !Sub '${AWS::StackName}-UserPoolClientId'
+  
+  # New outputs for Amplify Gen2 integration
+  UserPoolArn:
+    Description: Cognito User Pool ARN
+    Value: !GetAtt UserPool.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-UserPoolArn'
+  
+  FrontendUserPoolClientId:
+    Description: Cognito User Pool Client ID for Frontend
+    Value: !Ref FrontendUserPoolClient
+    Export:
+      Name: !Sub '${AWS::StackName}-FrontendUserPoolClientId'
+  
+  IdentityPoolId:
+    Description: Cognito Identity Pool ID
+    Value: !Ref IdentityPool
+    Export:
+      Name: !Sub '${AWS::StackName}-IdentityPoolId'
+  
+  AuthenticatedRoleArn:
+    Description: IAM Role ARN for authenticated users
+    Value: !GetAtt AuthenticatedRole.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-AuthenticatedRoleArn'
+  
+  UnauthenticatedRoleArn:
+    Description: IAM Role ARN for unauthenticated users
+    Value: !GetAtt UnauthenticatedRole.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-UnauthenticatedRoleArn'
   
   EventStoreTableName:
     Description: DynamoDB Event Store table name
