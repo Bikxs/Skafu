@@ -4,9 +4,6 @@
 		"ghcr.io/devcontainers/features/aws-cli:1": {
 			"version": "latest"
 		},
-		"ghcr.io/devcontainers/features/rust:1": {
-			"version": "latest"
-		},
 		"ghcr.io/audacioustux/devcontainers/aws-sam-cli:1": {},
 		"ghcr.io/jajera/features/amazon-q-cli:1": {}
 	}
