@@ -10,6 +10,9 @@ import { observabilityApi } from './apis/observabilityApi';
 import authReducer from './slices/authSlice';
 import uiReducer from './slices/uiSlice';
 
+// Import domain slices
+import observabilityReducer from '../../domains/observability/frontend/store/observabilitySlice';
+
 export const store = configureStore({
   reducer: {
     // API slices
@@ -19,6 +22,9 @@ export const store = configureStore({
     // Feature slices
     auth: authReducer,
     ui: uiReducer,
+    
+    // Domain slices
+    observability: observabilityReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
